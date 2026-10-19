@@ -1,0 +1,14 @@
+{
+  "name": "novax-lab",
+  "private": true,
+  "type": "module",
+  "description": "NovaX Lab static site (lab.novaxmatrix.com), home of البرج.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check:leak": "node scripts/check-leak.mjs",
+    "og": "node scripts/make-og.mjs"
+  },
+  "devDependencies": {}
+}

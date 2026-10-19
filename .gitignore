@@ -1,0 +1,6 @@
+# Plaintext answers: never commit
+content/*.private.json
+supabase/*.private.sql
+
+node_modules/
+.out/

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>البرج · Burj | لغز يومي من NovaX Lab</title>
+<meta name="description" content="لغز عربي يومي: كل جواب صحيح يفتح الطابق التالي. هل تصل إلى القمة قبل أصدقائك؟">
+<link rel="canonical" href="https://lab.novaxmatrix.com/burj/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NovaX Lab">
+<meta property="og:title" content="البرج · Burj">
+<meta property="og:description" content="لغز عربي يومي: كل جواب صحيح يفتح الطابق التالي. هل تصل إلى القمة قبل أصدقائك؟">
+<meta property="og:url" content="https://lab.novaxmatrix.com/burj/">
+<meta property="og:image" content="https://lab.novaxmatrix.com/burj/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="البرج: برج من الطوابق المضيئة في سماء الليل">
+<meta property="og:locale" content="ar_AR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#070C17">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=swap"></noscript>
+<link rel="stylesheet" href="style.css">
+<link rel="modulepreload" href="js/app.js">
+<link rel="preload" href="data/floors.json" as="fetch" crossorigin>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="stars"></div></div>
+
+<header class="top">
+  <div class="top-row">
+    <a class="brand" href="./" id="brand"><h1>البرج</h1></a>
+    <a class="lab" href="/">NovaX Lab</a>
+  </div>
+  <p class="tagline" id="tagline">كل طابق لغز. طابق جديد كل يوم.</p>
+</header>
+
+<main>
+  <!-- 1. Tower -->
+  <section class="view" id="v-tower" aria-label="البرج">
+    <div class="tower-scroll" id="tower-scroll">
+      <div class="tower" id="tower"></div>
+    </div>
+    <div class="dock">
+      <p class="status" id="status" aria-live="polite">جاري التحميل…</p>
+      <button class="btn btn-gold" id="btn-go" type="button" disabled>ابدأ الصعود</button>
+      <div class="links">
+        <button class="link" id="btn-board" type="button" hidden>المتصدرون</button>
+        <button class="link" id="btn-wa" type="button">تحدَّ صديقك</button>
+        <button class="link" id="btn-image" type="button">صورة للمشاركة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Puzzle -->
+  <section class="view" id="v-floor" aria-labelledby="floor-title" hidden>
+    <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+    <div class="floor-head">
+      <p class="floor-label" id="floor-title">الطابق 1 من 10</p>
+      <button class="back" id="btn-back" type="button">البرج <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+    </div>
+    <div class="puzzle" id="card">
+      <p class="question" id="question"></p>
+      <p class="hint" id="hint" hidden></p>
+      <form id="form" autocomplete="off" novalidate>
+        <label class="sr" for="answer">جوابك</label>
+        <input id="answer" name="answer" type="text" dir="auto" enterkeyhint="go" autocapitalize="off" spellcheck="false" placeholder="اكتب جوابك هنا" maxlength="60" required>
+        <p class="spell">لا تقلق من الإملاء: «ة» و«ه»، «أ» و«ا» كلها مقبولة.</p>
+        <p class="feedback" id="feedback" aria-live="assertive"></p>
+      </form>
+      <p class="solved-note" id="solved-note" hidden></p>
+    </div>
+    <div class="dock">
+      <button class="btn btn-gold" id="btn-up" type="submit" form="form">اصعد</button>
+      <button class="btn btn-outline" id="btn-wa3" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-13.4 7.9L3 21l1.2-4.4A9 9 0 1 1 21 12z"/><path d="M9 8.5c0 3.6 2.9 6.5 6.5 6.5"/></svg>تحدَّ صديقك على واتساب</button>
+    </div>
+  </section>
+
+  <!-- Summit -->
+  <section class="view" id="v-summit" aria-labelledby="summit-title" hidden>
+    <div class="summit">
+      <div class="summit-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M32 6l7 15 16 2-12 11 3 16-14-8-14 8 3-16L9 23l16-2z"/></svg>
+      </div>
+      <h2 id="summit-title">وصلت القمة اليوم</h2>
+      <p class="summit-sub">طابق جديد غداً</p>
+      <p class="summit-stat" id="summit-stat"></p>
+    </div>
+    <div class="dock">
+      <button class="btn btn-gold" id="btn-wa2" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-13.4 7.9L3 21l1.2-4.4A9 9 0 1 1 21 12z"/><path d="M9 8.5c0 3.6 2.9 6.5 6.5 6.5"/></svg>تحدَّ صديقك على واتساب</button>
+      <button class="btn btn-outline" id="btn-image2" type="button">احفظ صورة للمشاركة</button>
+      <div class="links">
+        <button class="link" id="btn-view-tower" type="button">عرض البرج</button>
+        <button class="link" id="btn-board2" type="button" hidden>المتصدرون</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Leaderboard -->
+  <section class="view" id="v-board" aria-labelledby="board-h" hidden>
+    <h2 class="sr" id="board-h">المتصدرون</h2>
+    <div class="board-scroll">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-players" aria-selected="false" aria-controls="p-players" type="button">الأفراد</button>
+        <button role="tab" id="tab-towns" aria-selected="true" aria-controls="p-towns" type="button">البلدات</button>
+      </div>
+      <p class="mock-tag" id="mock-tag" hidden>بيانات تجريبية للمعاينة</p>
+      <form class="join" id="join" novalidate hidden>
+        <p class="join-h">أضف اسمك إلى الترتيب</p>
+        <label for="nick">اسم مستعار</label>
+        <input id="nick" maxlength="20" autocomplete="nickname" placeholder="حتى 20 حرفاً">
+        <label for="town-q">البلدة</label>
+        <div class="combo">
+          <input id="town-q" role="combobox" aria-expanded="false" aria-controls="town-list" aria-autocomplete="list" autocomplete="off" placeholder="ابحث عن بلدتك">
+          <ul id="town-list" role="listbox" hidden></ul>
+        </div>
+        <p class="join-err" id="join-err" aria-live="polite"></p>
+        <button class="btn btn-outline" type="submit">انضم</button>
+        <p class="join-note">لا نطلب رقم هاتف ولا بريداً ولا تسجيل دخول.</p>
+      </form>
+      <div class="tab-panel" id="p-players" role="tabpanel" aria-labelledby="tab-players" hidden></div>
+      <div class="tab-panel" id="p-towns" role="tabpanel" aria-labelledby="tab-towns"></div>
+    </div>
+    <div class="dock">
+      <p class="status" id="board-status"></p>
+      <button class="btn btn-gold" id="btn-share-burj" type="button">شارك البرج</button>
+      <div class="links"><button class="link" id="btn-board-back" type="button">عودة إلى البرج</button></div>
+    </div>
+  </section>
+</main>
+
+<!-- Share image -->
+<dialog class="sheet" id="d-share" aria-labelledby="share-h">
+  <div class="sheet-head"><h2 id="share-h">صورة للمشاركة</h2><button class="icon-btn close" type="button" aria-label="إغلاق" data-close>×</button></div>
+  <div class="share-preview"><img id="share-img" alt="صورة المشاركة" width="1080" height="1920"></div>
+  <div class="sheet-actions">
+    <button class="btn btn-gold" id="btn-share-file" type="button" hidden>مشاركة الصورة</button>
+    <a class="btn btn-outline" id="btn-save" download="burj.png" href="#">حفظ الصورة</a>
+  </div>
+</dialog>
+
+<noscript><p class="nojs">البرج يحتاج إلى تفعيل JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

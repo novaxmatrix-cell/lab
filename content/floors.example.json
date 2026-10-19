@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to floors.private.json (gitignored) and run npm run build. Floors are solved in order; append a new floor each day. Up to 8 answers per floor; they are normalized at build time (tashkeel, أ/إ/آ, ة, ى, digits, leading ال). Optional \"hint\" is shown under the question. \"publicWords\" lists answers that may appear in public files on purpose (the game name, town names), so the leak check skips them.",
+  "publicWords": ["كلمة عامة"],
+  "floors": [
+    { "q": "سؤال الطابق الأول", "answers": ["جواب", "جواب آخر"] },
+    { "q": "سؤال الطابق الثاني", "answers": ["12"], "hint": "تلميح اختياري" }
+  ]
+}

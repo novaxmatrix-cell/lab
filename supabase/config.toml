@@ -1,0 +1,5 @@
+# Only the bits this project needs; `supabase init` would generate the rest.
+[functions.submit-score]
+# The function does its own validation and works with both legacy anon JWTs
+# and the newer publishable keys, which are not JWTs.
+verify_jwt = false
