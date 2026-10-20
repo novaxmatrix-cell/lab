@@ -1,4 +1,4 @@
-// node scripts/make-shorts.mjs [1-3]
+// node scripts/make-shorts.mjs [1-3] [--meta]   (--meta: rewrite only the .txt files)
 // YouTube Shorts for Burj from content/youtube.private.json (gitignored; not game floors).
 // Writes to ~/projects/lab-shorts/ (outside the repo), per Short:
 //   burj-short-NN.mp4        1080x1920, 30 fps
@@ -34,7 +34,9 @@ for (let i = 0; i < Math.max(...groups.map((g) => g.length)); i++) for (const g 
 // with that Short's answer.
 const carry = src.nextBatch && src.batch === src.nextBatch.batch ? src.nextBatch.openWith : null;
 const first = carry ? carry.short + 1 : 1;
-const [from, to] = (process.argv[2] || `${first}-${first + order.length - 1}`).split('-').map(Number);
+const metaOnly = process.argv.includes('--meta');
+const range = process.argv.slice(2).find((a) => !a.startsWith('--'));
+const [from, to] = (range || `${first}-${first + order.length - 1}`).split('-').map(Number);
 const shorts = order.map((p, i) => ({
   num: first + i,
   level: p.level,
@@ -45,6 +47,21 @@ const shorts = order.map((p, i) => ({
   intro: i || carry ? 2 : 3,
 })).map((s) => ({ ...s, duration: (s.prev ? 2 : 0) + s.intro + 10 + 3 }))
   .filter((s) => s.num >= from && s.num <= (to || from));
+
+const pad = (n) => String(n).padStart(2, '0');
+const MUSIC = process.env.SHORTS_MUSIC || join(OUT, 'music');
+const tracks = (await readdir(MUSIC).catch(() => [])).filter((f) => /\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(f)).sort();
+if (!tracks.length) console.log(`No music in ${MUSIC}: Shorts will be silent.`);
+const trackFor = (num) => (tracks.length ? tracks[(num - 1) % tracks.length] : null);
+
+if (metaOnly) {
+  for (const s of shorts) {
+    s.track = trackFor(s.num);
+    await writeFile(join(OUT, `burj-short-${pad(s.num)}.txt`), meta(s));
+    console.log(`Short ${s.num}: wrote .txt`);
+  }
+  process.exit(0);
+}
 
 // --- Minimal DevTools protocol client -------------------------------------
 const profile = await mkdtemp(join(tmpdir(), 'burj-shorts-'));
@@ -94,10 +111,6 @@ const dataUrl = (d) => Buffer.from(d.slice(d.indexOf(',') + 1), 'base64');
 
 // --- Render ----------------------------------------------------------------
 await mkdir(OUT, { recursive: true });
-const pad = (n) => String(n).padStart(2, '0');
-const MUSIC = process.env.SHORTS_MUSIC || join(OUT, 'music');
-const tracks = (await readdir(MUSIC).catch(() => [])).filter((f) => /\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(f)).sort();
-if (!tracks.length) console.log(`No music in ${MUSIC}: Shorts will be silent.`);
 
 function run(cmd, args, input) {
   const p = spawn(cmd, args, { stdio: [input ? 'pipe' : 'ignore', 'ignore', 'pipe'] });
@@ -124,7 +137,7 @@ async function musicFilter(track, duration) {
 
 for (const s of shorts) {
   const base = join(OUT, `burj-short-${pad(s.num)}`);
-  s.track = tracks.length ? tracks[(s.num - 1) % tracks.length] : null;
+  s.track = trackFor(s.num);
   // Music: one track per Short in rotation, looped if short, 1 s fade in, 1.5 s fade out.
   const audio = s.track
     ? ['-stream_loop', '-1', '-i', join(MUSIC, s.track), '-filter_complex',
@@ -167,7 +180,7 @@ function meta(s) {
     'عندك 10 ثوانٍ! اكتب جوابك في التعليقات، والجواب في الفيديو القادم.',
     ...(s.prev ? ['', `جواب اللغز السابق: ${s.prev.a}`] : []),
     '',
-    'العب البرج: لغز جديد كل يوم، وكل جواب صحيح يفتح الطابق التالي.',
+    'العب البرج: 3 ألغاز جديدة كل يوم (سهل، متوسط، صعب)، وكل جواب صحيح يفتح الطابق التالي.',
     'https://lab.novaxmatrix.com/burj',
     '',
     '#ألغاز #لغز #البرج #shorts',
