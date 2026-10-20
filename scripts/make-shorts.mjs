@@ -4,7 +4,7 @@
 //   burj-short-NN.mp4        1080x1920, 30 fps
 //   (music: one track per Short from ~/projects/lab-shorts/music/, rotating, quiet,
 //   faded in/out; silent when that folder has no tracks. Only use tracks you have
-//   the rights to, e.g. the YouTube Audio Library "no attribution required".)
+//   the rights to.)
 //   burj-short-NN-thumb.jpg  1280x720
 //   burj-short-NN.txt        title, description, tags
 // Frames are drawn by scripts/shorts.html in headless Chrome (over the DevTools
@@ -158,7 +158,7 @@ function meta(s) {
     tags.join(', '),
     '',
     'MUSIC (for your records, not for YouTube)',
-    s.track ? `${s.track} (YouTube Audio Library)` : 'none (silent)',
+    s.track ?? 'none (silent)',
     '',
   ].join('\n');
 }
