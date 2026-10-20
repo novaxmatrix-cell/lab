@@ -59,6 +59,11 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 .btn.busy{pointer-events:none}
 .btn.busy::after{content:"";width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.btn-install{min-height:48px;font-size:1rem;box-shadow:none}
+.ios-tip{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:var(--fill-2);border:1px solid var(--line);color:#C9CDDD;font-size:.8125rem;line-height:1.5}
+.ios-tip span{flex:1}
+.ios-tip svg{width:1.1em;height:1.1em;vertical-align:-.2em;color:var(--blue)}
+.ios-tip button{width:32px;height:32px;flex:none;border-radius:50%;color:var(--m);font-size:1.25rem;line-height:1}
 .links{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 18px}
 .link{color:var(--blue);font-size:.875rem;padding:8px 2px;text-decoration:underline;text-decoration-color:rgba(122,162,255,.4);text-underline-offset:4px}
 
@@ -77,6 +82,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 .fl.current{background:var(--fill);color:#fff;cursor:pointer}
 .fl.locked{background:var(--fill-3);border:1px dashed var(--line);color:var(--m2)}
 .fl.locked .st{font-weight:400}
+.fl.future .st{color:var(--blue-m);font-weight:700}
 .roof{flex:none;position:relative;height:44px;margin:0 -8px -2px;background:var(--fill-3);clip-path:polygon(50% 0,100% 100%,0 100%);transition:background .6s}
 .roof.lit{background:linear-gradient(180deg,#FED786,#F6B946)}
 

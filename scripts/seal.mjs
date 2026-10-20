@@ -3,6 +3,7 @@
 
 import { normalize } from '../docs/burj/js/normalize.js';
 import { answerKey, b64, gateAad, floorAad, importContentKey } from '../docs/burj/js/chain.js';
+import { opensAtUtc } from '../docs/burj/js/schedule.js';
 
 const subtle = globalThis.crypto.subtle;
 const rand = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
@@ -26,7 +27,8 @@ export function acceptedAnswers(floor) {
   return list;
 }
 
-// floors: [{ q, answers: [...], hint? }], in order. Returns the public data object.
+// floors: [{ q, answers: [...], hint?, opens? }], in order. Returns the public data object.
+// The open date stays outside the ciphertext: the browser needs it before it has a key.
 export async function sealChain(floors, { iterations, wrapsPerGate = WRAPS_PER_GATE } = {}) {
   if (!Number.isInteger(iterations) || iterations < 1) throw new Error('iterations required');
   const keys = floors.map(() => rand(32));
@@ -38,8 +40,9 @@ export async function sealChain(floors, { iterations, wrapsPerGate = WRAPS_PER_G
     const n = i + 1;
     const { q, hint } = floors[i];
     const content = hint ? { q, hint } : { q };
+    const when = floors[i].opens ? { opens: floors[i].opens, opensAt: opensAtUtc(floors[i].opens) } : {};
     if (n === 1) {
-      out.floors.push({ plain: content });
+      out.floors.push({ plain: content, ...when });
     } else {
       const iv = rand(12);
       const ct = await subtle.encrypt(
@@ -47,7 +50,7 @@ export async function sealChain(floors, { iterations, wrapsPerGate = WRAPS_PER_G
         await importContentKey(keys[i]),
         pad(JSON.stringify(content)),
       );
-      out.floors.push({ iv: b64.to(iv), ct: b64.to(ct) });
+      out.floors.push({ iv: b64.to(iv), ct: b64.to(ct), ...when });
     }
 
     const answers = acceptedAnswers({ ...floors[i], n });

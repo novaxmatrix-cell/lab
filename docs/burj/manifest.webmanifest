@@ -1,0 +1,20 @@
+{
+  "id": "/burj/",
+  "name": "البرج",
+  "short_name": "البرج",
+  "description": "لغز عربي يومي: كل جواب صحيح يفتح الطابق التالي.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/burj/",
+  "scope": "/burj/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060818",
+  "theme_color": "#090D27",
+  "categories": ["games", "education"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

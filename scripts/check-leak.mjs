@@ -1,6 +1,6 @@
 // npm run check:leak (also runs at the end of every build)
-// Fails if a plaintext answer or a locked question appears in any file that
-// could be committed. Answers shorter than 3 characters (digits like "13") are
+// Fails if a plaintext answer (as a whole word) or a locked question appears in
+// any file that could be committed. Answers shorter than 3 characters (digits like "13") are
 // too common to search for; they are protected only by the encryption.
 // Words that are public on purpose (the game is called «البرج», town names)
 // go in "publicWords" in floors.private.json.
@@ -23,23 +23,26 @@ async function* walk(dir) {
   }
 }
 
-// Strip tashkeel etc. but keep the text intact enough for substring search.
+// Strip tashkeel etc. but keep the text intact enough to search.
 const flat = (s) => normalize(' ' + s).replace(/\s+/g, ' ');
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Whole words only (with an optional «ال»), so «ليل» does not match «قليل».
+const wordRe = (needle) => new RegExp(`(?<![\\p{L}\\p{N}])(?:ال)?${esc(needle)}(?![\\p{L}\\p{N}])`, 'u');
 
 export async function findLeaks(floors, publicWords = []) {
   const allowed = new Set(publicWords.map(normalize));
   const needles = [];
   floors.forEach((f, i) => {
     for (const a of f.answers.map(normalize)) {
-      if (a.length >= 3 && !allowed.has(a)) needles.push([`floor ${i + 1} answer`, a]);
+      if (a.length >= 3 && !allowed.has(a)) needles.push([`floor ${i + 1} answer`, wordRe(a)]);
     }
-    if (i > 0) needles.push([`floor ${i + 1} question`, flat(f.q)]);
+    if (i > 0) needles.push([`floor ${i + 1} question`, wordRe(flat(f.q))]);
   });
   const hits = [];
   for await (const file of walk(root)) {
     const text = flat(await readFile(file, 'utf8'));
     for (const [what, needle] of needles) {
-      if (text.includes(needle)) hits.push(`  ${file.slice(root.length)}: ${what}`);
+      if (needle.test(text)) hits.push(`  ${file.slice(root.length)}: ${what}`);
     }
   }
   return hits;

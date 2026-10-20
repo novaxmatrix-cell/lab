@@ -32,8 +32,16 @@ npm test
 npm run serve   # http://localhost:8080/burj/
 ```
 
-To add a day's floor, append it to `floors.private.json`, run `npm run build`,
-commit `docs/burj/data/floors.json`, and push. Players keep their progress.
+Floors can be scheduled ahead: give a floor `"opens": "YYYY-MM-DD"` and it
+unlocks at 06:00 Asia/Hebron that day (the build handles DST). Undated floors
+are open now and must come first. Add a week of floors, build, commit
+`docs/burj/data/floors.json`, push once; no daily pushes. Players keep their progress.
+
+The browser decides what is open using the server time from the `Date` header
+of `floors.json`, so moving the phone clock does not help. It is still a static
+site: tomorrow's floor is in the public data, encrypted under today's answer, so
+a technical player who solves today's floor could decrypt tomorrow's early with
+the dev tools. The leaderboard (server) rejects floors before their release time.
 
 `npm run build` ends with a leak check (also `npm run check:leak`) that fails if an
 answer of 3+ letters or a locked question appears in any committable file. Words
@@ -43,7 +51,13 @@ Answer normalization (`docs/burj/js/normalize.js`): trim, strip tashkeel, tatwee
 invisible marks and punctuation, أ/إ/آ/ٱ→ا, ة→ه, ى→ي, Arabic-Indic digits→0-9,
 collapse spaces, optional leading «ال».
 
-`npm run og` re-renders `docs/burj/og.png` and the touch icon with headless Chrome.
+`npm run og` re-renders `docs/burj/og.png` and the app icons with headless Chrome.
+
+The game installs as an app (PWA): `docs/burj/manifest.webmanifest` and
+`docs/burj/sw.js`. The service worker serves the app shell from a cache whose
+version `npm run build` stamps from the shell's contents, so every deploy that
+changes the shell is picked up; `floors.json` is always fetched from the network
+first.
 
 ## Leaderboard (phase 2)
 

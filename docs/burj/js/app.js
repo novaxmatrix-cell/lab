@@ -2,6 +2,7 @@
 import { normalize } from './normalize.js';
 import { openGate, openFloor, b64 } from './chain.js';
 import { CONFIG } from './config.js';
+import { openCount, nextOpening, countdownText, openLabel } from './schedule.js';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -31,7 +32,17 @@ let data = null; // public encrypted floors
 let currentKey = null; // raw content key of the floor the player is on
 const contents = new Map(); // n -> decrypted { q, hint }
 const solved = () => state.answers.length;
-const atSummit = () => data && solved() >= data.total;
+
+// Server time minus device time, from the HTTP Date header of floors.json, so a
+// wrong (or moved) phone clock does not open tomorrow's floor early.
+let clockOffset = 0;
+const now = () => Date.now() + clockOffset;
+const openTotal = () => (data ? openCount(data, now()) : 0); // floors open right now
+const atSummit = () => data && solved() >= openTotal();
+const nextText = () => {
+  const next = data && nextOpening(data, now());
+  return next ? `الطابق القادم بعد ${countdownText(next - now())}` : 'طابق جديد قريباً';
+};
 
 const params = new URLSearchParams(location.search);
 const boardMode = ['off', 'mock', 'live'].includes(params.get('lb')) ? params.get('lb') : CONFIG.leaderboard.mode;
@@ -52,10 +63,19 @@ function minutesLabel(n) {
 }
 
 // ---- Startup
+async function loadData() {
+  const res = await fetch('data/floors.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error(res.status);
+  const fresh = await res.json();
+  // The service worker marks an offline copy: its Date is stale, keep the last offset.
+  const date = Date.parse(res.headers.get('date'));
+  if (!res.headers.get('x-burj-cache') && !Number.isNaN(date)) clockOffset = date - Date.now();
+  return fresh;
+}
+
 async function init() {
   try {
-    const res = await fetch('data/floors.json', { cache: 'no-cache' });
-    data = await res.json();
+    data = await loadData();
   } catch {
     $('status').textContent = 'تعذّر تحميل البرج. تحقق من الاتصال وأعد المحاولة.';
     return;
@@ -79,6 +99,45 @@ async function init() {
     renderSummit();
   }
 }
+
+// Called when the countdown reaches zero and when the app comes back to the
+// foreground: re-read the server clock and pick up a new deploy if there is one.
+let refreshing = false;
+async function refresh() {
+  if (!data || refreshing) return;
+  refreshing = true;
+  try {
+    const fresh = await loadData();
+    if (fresh.build !== data.build) {
+      data = fresh;
+      contents.clear();
+      await restoreKey();
+      buildTower();
+    }
+  } catch {
+    // offline: keep going with what we have
+  }
+  refreshing = false;
+  shownOpen = openTotal(); // even if the tower is not redrawn (puzzle screen), so this runs once
+  const view = document.body.dataset.view;
+  if (view === 'v-summit' && !atSummit()) showView('v-tower');
+  if (view !== 'v-floor') update(false);
+  if (view === 'v-summit') renderSummit();
+}
+
+// Live countdown on the summit screen and the tower status line. When a floor
+// opens, the open count changes: compare with what is on screen, not with the
+// next opening (that moves on to tomorrow's floor the moment today's opens).
+let shownOpen = 0;
+setInterval(() => {
+  if (!data) return;
+  if (openTotal() !== shownOpen) return refresh();
+  if (!atSummit()) return;
+  $('summit-sub').textContent = nextText();
+  const st = $('status').querySelector('.next');
+  if (st) st.textContent = nextText();
+}, 1000);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refresh());
 
 // Recover the key of the current floor: from cache if the data did not change,
 // otherwise by re-opening the last gate with the stored answer. If the author
@@ -116,7 +175,7 @@ function buildTower() {
     el.className = 'fl';
     el.innerHTML = `<span class="name">الطابق ${n}</span><span class="st"></span>`;
     el.addEventListener('click', () => {
-      if (n <= solved() + 1) openFloorView(n);
+      if (n <= solved() + 1 && n <= openTotal()) openFloorView(n);
     });
     tower.append(el);
     floorEls.push(el);
@@ -132,36 +191,39 @@ function buildTower() {
 }
 
 // «وصلت الطابق N» counts the floor you are standing on, as in the mockup.
-const reached = (s = solved()) => Math.min(s + 1, data.total);
+const reached = (s = solved()) => Math.min(s + 1, openTotal());
 
 // Draw the tower with `s` floors solved (normally the real progress; one less just before a climb).
 function update(animate = true, s = solved()) {
-  const top = s >= data.total;
+  const open = openTotal();
+  shownOpen = open;
+  const top = s >= open;
   floorEls.forEach((el, i) => {
     const n = i + 1;
-    const cls = n <= s ? 'solved' : n === s + 1 ? 'current' : 'locked';
+    const cls = n > open ? 'locked future' : n <= s ? 'solved' : n === s + 1 ? 'current' : 'locked';
+    const label = n > open ? openLabel(data.floors[i], now()) : cls === 'solved' ? '✓' : cls === 'current' ? 'أنت هنا' : 'مقفل';
     el.className = 'fl ' + cls;
-    el.querySelector('.st').textContent = cls === 'solved' ? '✓' : cls === 'current' ? 'أنت هنا' : 'مقفل';
-    el.setAttribute('role', cls === 'locked' ? 'presentation' : 'button');
-    el.setAttribute('aria-label', `الطابق ${n}${cls === 'solved' ? '، محلول' : cls === 'current' ? '، أنت هنا' : '، مقفل'}`);
-    if (cls !== 'locked') el.tabIndex = 0;
+    el.querySelector('.st').textContent = label;
+    el.setAttribute('role', cls.startsWith('locked') ? 'presentation' : 'button');
+    el.setAttribute('aria-label', `الطابق ${n}، ${cls === 'solved' ? 'محلول' : label}`);
+    if (!cls.startsWith('locked')) el.tabIndex = 0;
     else el.removeAttribute('tabindex');
   });
   $('roof').classList.toggle('lit', top);
 
   const ring = $('ring');
   if (!animate) ring.style.transition = 'none';
-  ring.style.setProperty('--at', Math.min(s, data.total));
+  ring.style.setProperty('--at', Math.min(s, open));
   ring.classList.toggle('done', top);
   if (!animate) requestAnimationFrame(() => (ring.style.transition = ''));
 
   const status = $('status');
   const go = $('btn-go');
   if (top) {
-    status.innerHTML = `وصلت <b>القمة</b>. طابق جديد غداً`;
+    status.innerHTML = `وصلت <b>القمة</b>. <span class="next">${nextText()}</span>`;
     go.textContent = 'القمة';
   } else if (s === 0) {
-    status.textContent = `${floorsLabel(data.total)} تنتظرك. كل جواب يفتح الطابق التالي.`;
+    status.textContent = `${floorsLabel(open)} تنتظرك. كل جواب يفتح الطابق التالي.`;
     go.textContent = 'ابدأ الصعود';
   } else {
     status.innerHTML = `وصلت <b>الطابق ${reached(s)}</b>`;
@@ -174,7 +236,8 @@ function update(animate = true, s = solved()) {
 function scrollToCurrent(smooth, s = solved()) {
   if (!data || $('v-tower').hidden) return;
   const scroller = $('tower-scroll');
-  const el = s >= data.total ? $('roof') : floorEls[s];
+  // At today's summit, center on the next floor to open (or the roof if none).
+  const el = floorEls[Math.min(s, openTotal())] ?? $('roof');
   if (!el) return;
   const top = el.offsetTop + $('tower').offsetTop - scroller.clientHeight / 2 + el.offsetHeight / 2;
   scroller.scrollTo({ top, behavior: smooth && !reduceMotion ? 'smooth' : 'auto' });
@@ -205,8 +268,8 @@ async function openFloorView(n) {
   const card = $('card');
   const current = n === solved() + 1;
   card.classList.remove('win', 'shake');
-  $('floor-title').textContent = `الطابق ${n} من ${data.total}`;
-  $('progress-bar').style.width = `${(solved() / data.total) * 100}%`;
+  $('floor-title').textContent = `الطابق ${n} من ${openTotal()}`;
+  $('progress-bar').style.width = `${(solved() / openTotal()) * 100}%`;
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
   $('answer').value = '';
@@ -243,7 +306,7 @@ async function openFloorView(n) {
   }
 }
 
-const WRONG = ['ليس هذا. جرّب مرة أخرى', 'فكّر بطريقة أخرى', 'قريب؟ ربما لا. حاول مجدداً', 'ليس بعد. اقرأ السؤال من جديد'];
+const WRONG = ['ليس هذا. حاول من جديد', 'فكّر بطريقة أخرى', 'قريب؟ ربما لا. حاول مجدداً', 'ليس بعد. اقرأ السؤال من جديد'];
 let wrongCount = 0;
 
 $('form').addEventListener('submit', async (e) => {
@@ -282,7 +345,7 @@ $('form').addEventListener('submit', async (e) => {
   card.classList.add('win');
   fb.className = 'feedback ok';
   fb.textContent = 'صحيح!';
-  $('progress-bar').style.width = `${(solved() / data.total) * 100}%`;
+  $('progress-bar').style.width = `${(solved() / openTotal()) * 100}%`;
   input.blur();
   board?.submit(state);
   await sleep(600);
@@ -304,8 +367,9 @@ async function climb() {
 }
 
 function renderSummit() {
+  $('summit-sub').textContent = nextText();
   const t = state.times;
-  let line = `صعدت ${floorsLabel(data.total)}`;
+  let line = `صعدت ${floorsLabel(openTotal())}`;
   if (t.length >= 2) {
     const mins = Math.max(1, Math.round((t[t.length - 1] - t[0]) / 60000));
     if (mins < 180) line += ` في ${minutesLabel(mins)}`;
@@ -315,6 +379,7 @@ function renderSummit() {
 
 // ---- Sharing
 function shareText() {
+  if (atSummit()) return 'وصلت قمة البرج. هل تقدر تسبقني؟';
   return solved() > 0 ? `وصلت الطابق ${reached()} في البرج. هل تقدر تسبقني؟` : 'جرّب البرج: لغز عربي يومي. هل تقدر تصل إلى القمة؟';
 }
 function whatsapp() {
@@ -328,7 +393,7 @@ async function shareImage() {
   img.removeAttribute('src');
   dlg.showModal();
   const { makeShareImage } = await import('./share.js');
-  const blob = await makeShareImage({ solved: solved(), reached: reached(), total: data.total, url: CONFIG.url });
+  const blob = await makeShareImage({ solved: solved(), reached: reached(), total: openTotal(), url: CONFIG.url });
   const href = URL.createObjectURL(blob);
   img.src = href;
   $('btn-save').href = href;
@@ -344,7 +409,7 @@ async function loadBoard() {
   if (boardMode === 'off') return null;
   if (!board) {
     const m = await import('./board.js');
-    board = m.createBoard({ mode: boardMode, config: CONFIG.leaderboard, getState: () => state, save, total: () => data.total });
+    board = m.createBoard({ mode: boardMode, config: CONFIG.leaderboard, getState: () => state, save, total: openTotal });
   }
   return board;
 }
@@ -380,6 +445,47 @@ for (const d of document.querySelectorAll('dialog')) {
     if (e.target === d || e.target.closest('[data-close]')) d.close();
   });
 }
-addEventListener('resize', () => scrollToCurrent(false));
+// Keep the player's floor centered whenever the tower area changes size: window
+// resize, or the install button / iPhone tip appearing under it.
+new ResizeObserver(() => scrollToCurrent(false)).observe($('tower-scroll'));
+
+// ---- Install as an app
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // show our own button instead of the browser's mini bar
+  installPrompt = e;
+  if (!standalone()) $('btn-install').hidden = false;
+});
+addEventListener('appinstalled', () => {
+  installPrompt = null;
+  $('btn-install').hidden = true;
+});
+$('btn-install').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => null);
+  installPrompt = null; // a prompt can only be used once
+  $('btn-install').hidden = true;
+});
+// iPhone Safari has no install prompt: show the manual steps once.
+const ua = navigator.userAgent;
+const iosSafari = (/iP(hone|od|ad)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+if (iosSafari && !standalone() && !state.iosTip) {
+  $('ios-tip').hidden = false;
+  state.iosTip = 1;
+  save();
+}
+$('ios-tip-close').addEventListener('click', () => ($('ios-tip').hidden = true));
+
+// ---- Service worker: instant start and offline play. A new version takes over
+// in the background; reload into it unless the player is typing an answer.
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && document.body.dataset.view !== 'v-floor') location.reload();
+  });
+}
 
 init();
