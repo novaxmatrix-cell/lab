@@ -83,6 +83,12 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 .fl.locked{background:var(--fill-3);border:1px dashed var(--line);color:var(--m2)}
 .fl.locked .st{font-weight:400}
 .fl.future .st{color:var(--blue-m);font-weight:700}
+/* Difficulty tag: سهل / متوسط / صعب */
+.lv{display:inline-block;margin-inline-start:6px;padding:0 6px;border-radius:999px;font-size:.6875rem;font-weight:700;line-height:1.6;vertical-align:1px;border:1px solid currentColor}
+.lv-easy{color:#7BE0A6}.lv-medium{color:#8FB2FF}.lv-hard{color:#FF9E7A}
+.fl.solved .lv{color:var(--on-gold);border-color:rgba(42,24,0,.45);background:rgba(42,24,0,.08)}
+.fl.locked .lv{opacity:.75}
+.floor-label .lv{font-size:.75rem;vertical-align:2px}
 .roof{flex:none;position:relative;height:44px;margin:0 -8px -2px;background:var(--fill-3);clip-path:polygon(50% 0,100% 100%,0 100%);transition:background .6s}
 .roof.lit{background:linear-gradient(180deg,#FED786,#F6B946)}
 

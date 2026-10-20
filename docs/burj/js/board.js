@@ -122,7 +122,7 @@ export function createBoard({ mode, config, getState, save, total }) {
               <span class="score">الطابق ${r.highest_floor}<small>${ago(r.reached_at)}</small></span></li>`,
             )
             .join('')}</ol>`
-        : '<p class="empty">لا أحد بعد. كن الأول!</p>';
+        : '<p class="empty">لا لاعبين بعد. كن الأول!</p>';
     } catch {
       p.innerHTML = '<p class="empty">تعذّر تحميل الترتيب</p>';
     }

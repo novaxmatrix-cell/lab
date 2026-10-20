@@ -6,6 +6,10 @@
 export const TZ = 'Asia/Hebron';
 export const OPEN_HOUR = 6;
 
+// Three floors a day: easy, medium, hard.
+export const LEVELS = ['easy', 'medium', 'hard'];
+export const LEVEL_NAMES = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
+
 const parts = new Intl.DateTimeFormat('en-CA', {
   timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
 });
@@ -45,6 +49,19 @@ export function openCount(data, now) {
 export function nextOpening(data, now) {
   const f = data.floors[openCount(data, now)];
   return f?.opensAt ?? null;
+}
+
+// Summit line: «طوابق الغد بعد 5:42 ساعة» (or اليوم before 06:00), «الطابق القادم بعد …»
+// when a single floor is next, or «طابق جديد قريباً».
+export function nextText(data, now) {
+  const at = nextOpening(data, now);
+  if (!at) return 'طابق جديد قريباً';
+  const count = data.floors.filter((f) => f.opensAt === at).length;
+  const day = hebronDate(at);
+  const today = hebronDate(now);
+  const tomorrow = hebronDate(opensAtUtc(today) + 24 * 3600e3);
+  const what = count === 1 ? 'الطابق القادم' : day === tomorrow ? 'طوابق الغد' : day === today ? 'طوابق اليوم' : 'الطوابق القادمة';
+  return `${what} بعد ${countdownText(at - now)}`;
 }
 
 // «5:42 ساعة», «12 دقيقة», «أقل من دقيقة»

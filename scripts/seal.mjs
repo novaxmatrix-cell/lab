@@ -27,8 +27,8 @@ export function acceptedAnswers(floor) {
   return list;
 }
 
-// floors: [{ q, answers: [...], hint?, opens? }], in order. Returns the public data object.
-// The open date stays outside the ciphertext: the browser needs it before it has a key.
+// floors: [{ q, answers: [...], hint?, opens?, level? }], in order. Returns the public data object.
+// The open date and difficulty stay outside the ciphertext: the browser shows them before it has a key.
 export async function sealChain(floors, { iterations, wrapsPerGate = WRAPS_PER_GATE } = {}) {
   if (!Number.isInteger(iterations) || iterations < 1) throw new Error('iterations required');
   const keys = floors.map(() => rand(32));
@@ -41,6 +41,7 @@ export async function sealChain(floors, { iterations, wrapsPerGate = WRAPS_PER_G
     const { q, hint } = floors[i];
     const content = hint ? { q, hint } : { q };
     const when = floors[i].opens ? { opens: floors[i].opens, opensAt: opensAtUtc(floors[i].opens) } : {};
+    if (floors[i].level) when.level = floors[i].level; // shown on locked floors too
     if (n === 1) {
       out.floors.push({ plain: content, ...when });
     } else {

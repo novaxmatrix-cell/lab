@@ -41,7 +41,7 @@ test('Arabic-Indic and Persian digits become Western', () => {
 });
 
 test('ignores punctuation, invisible marks and Latin case', () => {
-  assert.equal(normalize('قلم!'), 'قلم');
+  assert.equal(normalize('باب!'), 'باب');
   assert.equal(normalize('٧.'), '7');
   assert.equal(normalize('«شمس»؟'), 'شمس');
   assert.equal(normalize('‏قمح‎'), 'قمح');

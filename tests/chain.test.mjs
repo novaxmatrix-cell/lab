@@ -106,9 +106,13 @@ test('built docs/burj/data/floors.json matches the private content', { skip: !pr
   for (let n = 1; n <= built.total; n++) {
     const f = priv.floors[n - 1];
     assert.equal((await openFloor(built, n, key)).q, f.q);
-    for (const a of f.answers) assert.ok(await openGate(built, n, a), `floor ${n}: "${a}"`);
+    // In parallel: Node runs WebCrypto on its thread pool, and this is thousands of 600k-round derivations.
+    const good = await Promise.all(f.answers.map((a) => openGate(built, n, a)));
+    good.forEach((k, j) => assert.ok(k, `floor ${n}: "${f.answers[j]}"`));
     const others = priv.floors.flatMap((g, i) => (i === n - 1 ? [] : g.answers)).filter((a) => !f.answers.includes(a));
-    for (const a of [...new Set(others), 'خطأ', '']) assert.equal(await openGate(built, n, a), null, `floor ${n}: "${a}" must not open`);
+    const wrong = [...new Set(others), 'خطأ', ''];
+    const opened = await Promise.all(wrong.map((a) => openGate(built, n, a)));
+    opened.forEach((k, j) => assert.equal(k, null, `floor ${n}: "${wrong[j]}" must not open`));
     key = await openGate(built, n, f.answers[0]);
   }
 });

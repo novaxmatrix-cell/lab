@@ -6,7 +6,7 @@ const TASHKEEL = /[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۨ-ۭ]/g;
 const TATWEEL = /ـ/g;
 // Zero-width and direction marks that phone keyboards like to insert.
 const INVISIBLE = /[​-‏‪-‮⁦-⁩﻿]/g;
-// Punctuation people add without thinking: «قلم!» or «7.»
+// Punctuation people add without thinking: «باب!» or «7.»
 const PUNCT = /[.,!?;:'"«»()\[\]{}\-_،؛؟٫٬…]/g;
 
 export function normalize(input) {

@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { sealChain, acceptedAnswers } from './seal.mjs';
 import { findLeaks } from './check-leak.mjs';
-import { TZ, OPEN_HOUR, opensAtUtc } from '../docs/burj/js/schedule.js';
+import { TZ, OPEN_HOUR, opensAtUtc, LEVELS } from '../docs/burj/js/schedule.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const SRC = root + 'content/floors.private.json';
@@ -31,6 +31,7 @@ let lastOpens = null;
 floors.forEach((f, i) => {
   if (typeof f.q !== 'string' || !f.q.trim()) throw new Error(`floor ${i + 1}: missing "q"`);
   if (!Array.isArray(f.answers)) throw new Error(`floor ${i + 1}: "answers" must be an array`);
+  if (f.level !== undefined && !LEVELS.includes(f.level)) throw new Error(`floor ${i + 1}: level must be one of ${LEVELS.join(', ')}`);
   // Undated floors are open now and must come first; dates never go backwards.
   if (f.opens !== undefined) {
     opensAtUtc(f.opens); // validates the format

@@ -2,7 +2,7 @@
 import { normalize } from './normalize.js';
 import { openGate, openFloor, b64 } from './chain.js';
 import { CONFIG } from './config.js';
-import { openCount, nextOpening, countdownText, openLabel } from './schedule.js';
+import { openCount, nextText as nextLine, openLabel, LEVEL_NAMES } from './schedule.js';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -39,9 +39,10 @@ let clockOffset = 0;
 const now = () => Date.now() + clockOffset;
 const openTotal = () => (data ? openCount(data, now()) : 0); // floors open right now
 const atSummit = () => data && solved() >= openTotal();
-const nextText = () => {
-  const next = data && nextOpening(data, now());
-  return next ? `الطابق القادم بعد ${countdownText(next - now())}` : 'طابق جديد قريباً';
+const nextText = () => (data ? nextLine(data, now()) : '');
+const levelTag = (n) => {
+  const lv = data.floors[n - 1]?.level;
+  return lv ? `<span class="lv lv-${lv}">${LEVEL_NAMES[lv]}</span>` : '';
 };
 
 const params = new URLSearchParams(location.search);
@@ -173,7 +174,7 @@ function buildTower() {
   for (let n = 1; n <= data.total; n++) {
     const el = document.createElement('div');
     el.className = 'fl';
-    el.innerHTML = `<span class="name">الطابق ${n}</span><span class="st"></span>`;
+    el.innerHTML = `<span class="name">الطابق ${n}${levelTag(n)}</span><span class="st"></span>`;
     el.addEventListener('click', () => {
       if (n <= solved() + 1 && n <= openTotal()) openFloorView(n);
     });
@@ -205,7 +206,8 @@ function update(animate = true, s = solved()) {
     el.className = 'fl ' + cls;
     el.querySelector('.st').textContent = label;
     el.setAttribute('role', cls.startsWith('locked') ? 'presentation' : 'button');
-    el.setAttribute('aria-label', `الطابق ${n}، ${cls === 'solved' ? 'محلول' : label}`);
+    const lv = data.floors[i].level;
+    el.setAttribute('aria-label', `الطابق ${n}${lv ? '، ' + LEVEL_NAMES[lv] : ''}، ${cls === 'solved' ? 'محلول' : label}`);
     if (!cls.startsWith('locked')) el.tabIndex = 0;
     else el.removeAttribute('tabindex');
   });
@@ -268,7 +270,7 @@ async function openFloorView(n) {
   const card = $('card');
   const current = n === solved() + 1;
   card.classList.remove('win', 'shake');
-  $('floor-title').textContent = `الطابق ${n} من ${openTotal()}`;
+  $('floor-title').innerHTML = `الطابق ${n} من ${openTotal()}${levelTag(n)}`;
   $('progress-bar').style.width = `${(solved() / openTotal()) * 100}%`;
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';

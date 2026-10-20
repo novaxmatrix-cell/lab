@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { opensAtUtc, hebronDate, openCount, nextOpening, countdownText, openLabel, TZ } from '../docs/burj/js/schedule.js';
+import { opensAtUtc, hebronDate, openCount, nextOpening, nextText, countdownText, openLabel, TZ } from '../docs/burj/js/schedule.js';
 import { sealChain } from '../scripts/seal.mjs';
 
 const hebronClock = (t) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
@@ -62,4 +62,21 @@ test('sealed data carries the open time outside the ciphertext', async () => {
   assert.equal(sealed.floors[0].opensAt, undefined);
   assert.equal(sealed.floors[1].opens, '2026-10-24');
   assert.equal(sealed.floors[1].opensAt, Date.parse('2026-10-24T04:00:00Z'));
+});
+
+test('summit line names what opens next', () => {
+  const day = (d, level) => ({ opens: d, opensAt: opensAtUtc(d), level });
+  const three = { floors: [{}, day('2026-10-21', 'easy'), day('2026-10-21', 'medium'), day('2026-10-21', 'hard'), day('2026-10-23', 'easy')] };
+  assert.equal(nextText(three, at('2026-10-20T09:00:00Z')), 'طوابق الغد بعد 18:00 ساعة');
+  assert.equal(nextText(three, at('2026-10-21T02:30:00Z')), 'طوابق اليوم بعد 30 دقيقة'); // 05:30 Hebron
+  assert.equal(nextText(three, at('2026-10-21T09:00:00Z')), 'الطابق القادم بعد 42:00 ساعة'); // a single floor, two days away
+  const gap = { floors: [{}, day('2026-10-23', 'easy'), day('2026-10-23', 'medium')] };
+  assert.equal(nextText(gap, at('2026-10-20T09:00:00Z')).startsWith('الطوابق القادمة بعد'), true);
+  assert.equal(nextText({ floors: [{}] }, at('2026-10-20T09:00:00Z')), 'طابق جديد قريباً');
+});
+
+test('difficulty travels in the public data, outside the ciphertext', async () => {
+  const sealed = await sealChain([{ q: 'أ', answers: ['باب'] }, { q: 'ب', answers: ['شمس'], opens: '2026-10-24', level: 'hard' }], { iterations: 1000 });
+  assert.equal(sealed.floors[0].level, undefined);
+  assert.equal(sealed.floors[1].level, 'hard');
 });

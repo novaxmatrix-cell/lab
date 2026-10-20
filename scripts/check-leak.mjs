@@ -1,7 +1,7 @@
 // npm run check:leak (also runs at the end of every build)
 // Fails if a plaintext answer (as a whole word) or a locked question appears in
-// any file that could be committed. Answers shorter than 3 characters (digits like "13") are
-// too common to search for; they are protected only by the encryption.
+// any file that could be committed. Numbers ("13", "120") and answers shorter than
+// 3 characters are too common in code to search for; only the encryption protects them.
 // Words that are public on purpose (the game is called «البرج», town names)
 // go in "publicWords" in floors.private.json.
 
@@ -34,7 +34,7 @@ export async function findLeaks(floors, publicWords = []) {
   const needles = [];
   floors.forEach((f, i) => {
     for (const a of f.answers.map(normalize)) {
-      if (a.length >= 3 && !allowed.has(a)) needles.push([`floor ${i + 1} answer`, wordRe(a)]);
+      if (a.length >= 3 && !/^[\d\s]+$/.test(a) && !allowed.has(a)) needles.push([`floor ${i + 1} answer`, wordRe(a)]);
     }
     if (i > 0) needles.push([`floor ${i + 1} question`, wordRe(flat(f.q))]);
   });
