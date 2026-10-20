@@ -53,6 +53,10 @@ collapse spaces, optional leading «ال».
 
 `npm run og` re-renders `docs/burj/og.png` and the app icons with headless Chrome.
 
+YouTube Shorts (separate puzzles, not game floors): `node scripts/make-shorts.mjs [1-12]`
+reads `content/youtube.private.json` (gitignored) and writes videos, thumbnails and
+titles/descriptions to `~/projects/lab-shorts/`, with music from its `music/` folder if present.
+
 The game installs as an app (PWA): `docs/burj/manifest.webmanifest` and
 `docs/burj/sw.js`. The service worker serves the app shell from a cache whose
 version `npm run build` stamps from the shell's contents, so every deploy that

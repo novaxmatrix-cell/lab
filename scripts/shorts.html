@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<!-- Frame renderer for scripts/make-shorts.mjs. Same sky, colors and font as the game. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=block">
+<style>html,body{margin:0;background:#060818}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const FONT = '"IBM Plex Sans Arabic", "Noto Sans Arabic", sans-serif';
+const LEVEL = {
+  easy: { name: 'سهل', color: '#7BE0A6' },
+  medium: { name: 'متوسط', color: '#8FB2FF' },
+  hard: { name: 'صعب', color: '#FF9E7A' },
+};
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+window.ready = Promise.all([document.fonts.load(`700 80px ${FONT}`), document.fonts.load(`400 40px ${FONT}`)]).then(() => true);
+
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const ease = (x) => 1 - (1 - clamp(x)) ** 3;
+// 0→1 over [a, a+d], then 1→0 over [b-d, b]
+const win = (t, a, b, d = 0.35) => Math.min(ease((t - a) / d), ease((b - t) / d));
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+function sky(W, H, t, glowR) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0.3, '#090D27');
+  g.addColorStop(1, '#060818');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.scale(1, 0.5);
+  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, glowR);
+  glow.addColorStop(0, 'rgba(35,47,105,1)');
+  glow.addColorStop(1, 'rgba(35,47,105,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H * 2);
+  ctx.restore();
+  let seed = 7; // fixed stars, slow twinkle
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * W, y = rnd() * H * 0.85, r = rnd() * 2 + 0.6, base = 0.15 + rnd() * 0.45, ph = rnd() * 6.28;
+    ctx.globalAlpha = base * (0.75 + 0.25 * Math.sin(t * 1.6 + ph));
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Greedy word wrap; shrinks the font until the text fits in maxLines.
+function fit(text, weight, size, min, width, maxLines) {
+  for (let s = size; ; s -= 2) {
+    ctx.font = `${weight} ${s}px ${FONT}`;
+    const lines = [];
+    let line = '';
+    for (const w of text.split(' ')) {
+      const next = line ? line + ' ' + w : w;
+      if (line && ctx.measureText(next).width > width) {
+        lines.push(line);
+        line = w;
+      } else line = next;
+    }
+    lines.push(line);
+    if (lines.length <= maxLines || s <= min) return { lines, size: s };
+  }
+}
+
+function lines(text, x, y, { weight = 700, size, min = 36, width, maxLines = 4, lh = 1.5, color }) {
+  const f = fit(text, weight, size, min, width, maxLines);
+  ctx.fillStyle = color;
+  f.lines.forEach((l, i) => ctx.fillText(l, x, y + i * f.size * lh));
+  return y + (f.lines.length - 1) * f.size * lh; // baseline of the last line
+}
+
+function tag(level, x, y, size) {
+  const L = LEVEL[level];
+  ctx.font = `700 ${size}px ${FONT}`;
+  const w = ctx.measureText(L.name).width + size * 1.4;
+  const h = size * 1.6;
+  ctx.strokeStyle = L.color;
+  ctx.lineWidth = Math.max(2, size / 14);
+  rr(x - w / 2, y - h / 2, w, h, h / 2);
+  ctx.stroke();
+  ctx.fillStyle = L.color;
+  ctx.fillText(L.name, x, y + size * 0.36);
+}
+
+// Channel handle, muted, at the bottom of the area YouTube's overlays leave clear.
+function handle(W) {
+  ctx.save();
+  ctx.direction = 'ltr';
+  ctx.fillStyle = '#5F6688';
+  ctx.font = `400 34px ${FONT}`;
+  ctx.fillText('@NovaX-Matrix', W / 2, 1580);
+  ctx.restore();
+}
+
+function header(W, num, y) {
+  ctx.fillStyle = '#FFCF6B';
+  ctx.font = `700 64px ${FONT}`;
+  ctx.fillText('البرج', W / 2, y);
+  ctx.fillStyle = '#8488A0';
+  ctx.font = `400 38px ${FONT}`;
+  ctx.fillText(`لغز رقم ${num}`, W / 2, y + 62);
+}
+
+// One video frame at time t (seconds).
+window.frame = (s, t) => {
+  const W = 1080, H = 1920;
+  c.width = W;
+  c.height = H;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  sky(W, H, t, 900);
+  handle(W);
+
+  const P = s.prev ? 2 : 0; // previous answer
+  const Q = P + s.intro; // countdown starts
+  const E = Q + 10; // outro starts
+  const D = s.duration;
+
+  // 1. «جواب اللغز السابق»
+  if (s.prev && t < P) {
+    const a = win(t, -1, P, 0.3);
+    const rise = (1 - ease(t / 0.4)) * 40;
+    ctx.globalAlpha = a;
+    header(W, s.num, 210);
+    ctx.fillStyle = '#F2F4FA';
+    ctx.font = `700 60px ${FONT}`;
+    ctx.fillText('جواب اللغز السابق:', W / 2, 700 + rise);
+    lines(s.prev.q, W / 2, 810 + rise, { weight: 400, size: 52, min: 44, width: 860, maxLines: 3, color: '#CFD6EA' });
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,207,107,.55)';
+    ctx.shadowBlur = 50;
+    ctx.fillStyle = '#FFCF6B';
+    const pop = 0.85 + 0.15 * ease((t - 0.2) / 0.35);
+    ctx.translate(W / 2, 1170 + rise);
+    ctx.scale(pop, pop);
+    const f = fit(s.prev.a, 700, 160, 90, 900, 1);
+    ctx.font = `700 ${f.size}px ${FONT}`;
+    ctx.fillText(s.prev.a, 0, 0);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    return c.toDataURL('image/png');
+  }
+
+  // 2. The puzzle (stays up to the end)
+  const inA = ease((t - P) / 0.5);
+  const rise = (1 - inA) * 50;
+  ctx.globalAlpha = inA;
+  header(W, s.num, 210);
+  tag(s.level, W / 2, 440 + rise, 44);
+  const last = lines(s.q, W / 2, 600 + rise, { size: 70, min: 50, width: 820, maxLines: 4, color: '#F2F4FA' });
+  ctx.globalAlpha = 1;
+
+  // 3. Countdown ring
+  const cy = Math.max(1180, last + 330);
+  if (t >= Q - 0.4 && t < E + 0.4) {
+    const a = win(t, Q - 0.4, E + 0.4, 0.4);
+    const left = Math.max(0, E - t);
+    const n = Math.min(10, Math.ceil(left - 1e-6));
+    const tick = 1 - ease((Math.ceil(left) - left) / 0.35); // pulse at each new second
+    const hot = n <= 3;
+    const col = hot ? '#FF9E7A' : '#FFCF6B';
+    ctx.globalAlpha = a;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = '#141A38';
+    ctx.beginPath();
+    ctx.arc(W / 2, cy, 170, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = hot ? 'rgba(255,158,122,.6)' : 'rgba(255,207,107,.5)';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = col;
+    ctx.beginPath();
+    ctx.arc(W / 2, cy, 170, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.min(10, left)) / 10);
+    ctx.stroke();
+    ctx.restore();
+    if (n > 0) {
+      ctx.save();
+      ctx.translate(W / 2, cy);
+      const sc = 1 + 0.12 * tick;
+      ctx.scale(sc, sc);
+      ctx.fillStyle = hot ? '#FF9E7A' : '#F2F4FA';
+      ctx.font = `700 150px ${FONT}`;
+      ctx.direction = 'ltr';
+      ctx.fillText(String(n), 0, 52);
+      ctx.restore();
+      ctx.direction = 'rtl';
+    }
+    ctx.fillStyle = '#F2F4FA';
+    ctx.font = `700 52px ${FONT}`;
+    ctx.fillText('اكتب جوابك في التعليقات', W / 2, cy + 300);
+    ctx.globalAlpha = 1;
+  }
+
+  // 4. Outro
+  if (t >= E) {
+    const a = ease((t - E) / 0.4);
+    const r2 = (1 - a) * 40;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#F2F4FA';
+    ctx.font = `700 52px ${FONT}`;
+    ctx.fillText('اكتب جوابك في التعليقات', W / 2, cy - 110 + r2);
+    ctx.fillStyle = '#FFCF6B';
+    ctx.font = `700 60px ${FONT}`;
+    ctx.fillText('الجواب في الفيديو القادم', W / 2, cy + r2);
+    const b = ease((t - E - 0.5) / 0.4);
+    ctx.globalAlpha = b;
+    const by = cy + 120 + (1 - b) * 30;
+    const g = ctx.createLinearGradient(0, by, 0, by + 104);
+    g.addColorStop(0, '#FFCE68');
+    g.addColorStop(1, '#F5A725');
+    ctx.fillStyle = g;
+    rr(W / 2 - 230, by, 460, 104, 52);
+    ctx.fill();
+    ctx.fillStyle = '#2A1800';
+    ctx.font = `700 52px ${FONT}`;
+    ctx.fillText('العب البرج', W / 2, by + 70);
+    ctx.direction = 'ltr';
+    ctx.fillStyle = '#7AA2FF';
+    ctx.font = `400 46px ${FONT}`;
+    ctx.fillText(s.url, W / 2, by + 180);
+    ctx.direction = 'rtl';
+    ctx.globalAlpha = 1;
+  }
+  // Fade out the last 0.3 s into the loop
+  if (t > D - 0.3) {
+    ctx.fillStyle = `rgba(6,8,24,${clamp((t - (D - 0.3)) / 0.3)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  return c.toDataURL('image/png');
+};
+
+// 1280x720 thumbnail.
+window.thumb = (s) => {
+  const W = 1280, H = 720;
+  c.width = W;
+  c.height = H;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  sky(W, H, 0, 700);
+  // Big question mark on the left
+  ctx.save();
+  const halo = ctx.createRadialGradient(300, 370, 0, 300, 370, 260);
+  halo.addColorStop(0, 'rgba(255,207,107,.22)');
+  halo.addColorStop(1, 'rgba(255,207,107,0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, 640, H);
+  ctx.shadowColor = 'rgba(255,207,107,.6)';
+  ctx.shadowBlur = 40;
+  ctx.fillStyle = '#FFCF6B';
+  ctx.font = `700 400px ${FONT}`;
+  ctx.fillText('؟', 300, 520);
+  ctx.restore();
+  // Text block on the right
+  const x = 880;
+  ctx.fillStyle = '#FFCF6B';
+  ctx.font = `700 52px ${FONT}`;
+  ctx.fillText('البرج', x, 105);
+  tag(s.level, x, 175, 34);
+  const f = fit(s.q, 700, 64, 40, 680, 4);
+  const lh = f.size * 1.4;
+  const top = 380 - ((f.lines.length - 1) * lh) / 2 + f.size * 0.35;
+  ctx.fillStyle = '#F2F4FA';
+  ctx.font = `700 ${f.size}px ${FONT}`;
+  f.lines.forEach((l, i) => ctx.fillText(l, x, top + i * lh));
+  ctx.fillStyle = '#7AA2FF';
+  ctx.font = `700 46px ${FONT}`;
+  ctx.fillText('هل تعرف الجواب؟', x, 650);
+  return c.toDataURL('image/jpeg', 0.92);
+};
+</script>
+</body>
+</html>
