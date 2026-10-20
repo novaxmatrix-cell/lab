@@ -2,7 +2,7 @@
 // YouTube Shorts for Burj from content/youtube.private.json (gitignored; not game floors).
 // Writes to ~/projects/lab-shorts/ (outside the repo), per Short:
 //   burj-short-NN.mp4        1080x1920, 30 fps
-//   (music: one track per Short from ~/projects/lab-shorts/music/, rotating, quiet,
+//   (music: one track per Short from ~/projects/lab-shorts/music/, rotating, -16 LUFS,
 //   faded in/out; silent when that folder has no tracks. Only use tracks you have
 //   the rights to.)
 //   burj-short-NN-thumb.jpg  1280x720
@@ -10,7 +10,8 @@
 // Frames are drawn by scripts/shorts.html in headless Chrome (over the DevTools
 // protocol) and encoded with ffmpeg. Needs Chrome, ffmpeg and network for Google Fonts.
 import { readFile, writeFile, mkdir, mkdtemp, rm, readdir } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,22 +22,27 @@ const chrome = process.env.CHROME || 'google-chrome';
 const FPS = 30;
 const LEVEL_NAMES = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
 
-const src = JSON.parse(await readFile(root + 'content/youtube.private.json', 'utf8'));
+const src = JSON.parse(await readFile(process.env.SHORTS_SRC || root + 'content/youtube.private.json', 'utf8'));
 // Mixed order: easy, medium, hard, repeating.
 const by = (l) => src.puzzles.filter((p) => p.level === l);
 const groups = ['easy', 'medium', 'hard'].map(by);
 const order = [];
 for (let i = 0; i < Math.max(...groups.map((g) => g.length)); i++) for (const g of groups) if (g[i]) order.push(g[i]);
 
-const [from, to] = (process.argv[2] || `1-${order.length}`).split('-').map(Number);
+// A new batch continues from the last one: when "batch" matches nextBatch.batch,
+// numbering carries on after nextBatch.openWith.short and the first Short opens
+// with that Short's answer.
+const carry = src.nextBatch && src.batch === src.nextBatch.batch ? src.nextBatch.openWith : null;
+const first = carry ? carry.short + 1 : 1;
+const [from, to] = (process.argv[2] || `${first}-${first + order.length - 1}`).split('-').map(Number);
 const shorts = order.map((p, i) => ({
-  num: i + 1,
+  num: first + i,
   level: p.level,
   q: p.q,
   a: p.a,
-  prev: i ? { q: order[i - 1].q, a: order[i - 1].a } : null,
+  prev: i ? { q: order[i - 1].q, a: order[i - 1].a } : carry && { q: carry.q, a: carry.a },
   url: src.url,
-  intro: i ? 2 : 3,
+  intro: i || carry ? 2 : 3,
 })).map((s) => ({ ...s, duration: (s.prev ? 2 : 0) + s.intro + 10 + 3 }))
   .filter((s) => s.num >= from && s.num <= (to || from));
 
@@ -102,15 +108,27 @@ function run(cmd, args, input) {
   return { p, done };
 }
 
+// Music is the only audio and YouTube never turns quiet videos up, so it goes to
+// -16 LUFS with true peaks under -2 dBTP (margin for the AAC encoder), using
+// loudnorm's two passes: measure the faded clip, then apply one linear gain.
+const LOUDNESS = 'I=-16:TP=-2:LRA=11';
+async function musicFilter(track, duration) {
+  const clip = `atrim=0:${duration},asetpts=N/SR/TB,aresample=48000,aformat=channel_layouts=stereo,` +
+    `afade=t=in:d=1,afade=t=out:st=${duration - 1.5}:d=1.5`;
+  const { stderr } = await promisify(execFile)('ffmpeg', ['-hide_banner', '-nostats', '-stream_loop', '-1',
+    '-i', join(MUSIC, track), '-af', `${clip},loudnorm=${LOUDNESS}:print_format=json`, '-f', 'null', '-']);
+  const m = JSON.parse(/\{[^{}]*"input_i"[^{}]*\}/.exec(stderr)[0]);
+  return `${clip},loudnorm=${LOUDNESS}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:` +
+    `measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=48000`;
+}
+
 for (const s of shorts) {
   const base = join(OUT, `burj-short-${pad(s.num)}`);
   s.track = tracks.length ? tracks[(s.num - 1) % tracks.length] : null;
-  // Music: looped if short, normalized to a quiet -24 LUFS, 1 s fade in, 1.5 s fade out.
+  // Music: one track per Short in rotation, looped if short, 1 s fade in, 1.5 s fade out.
   const audio = s.track
     ? ['-stream_loop', '-1', '-i', join(MUSIC, s.track), '-filter_complex',
-        `[1:a]atrim=0:${s.duration},asetpts=N/SR/TB,loudnorm=I=-24:TP=-2:LRA=11,aresample=48000,` +
-        `aformat=channel_layouts=stereo,afade=t=in:d=1,afade=t=out:st=${s.duration - 1.5}:d=1.5[a]`,
-        '-map', '0:v', '-map', '[a]']
+        `[1:a]${await musicFilter(s.track, s.duration)}[a]`, '-map', '0:v', '-map', '[a]']
     : ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-shortest'];
   const { p, done } = run('ffmpeg', ['-y', '-loglevel', 'error',
     '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-', ...audio, '-t', String(s.duration),
