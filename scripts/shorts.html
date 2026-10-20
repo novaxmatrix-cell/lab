@@ -63,7 +63,8 @@ function fit(text, weight, size, min, width, maxLines) {
     ctx.font = `${weight} ${s}px ${FONT}`;
     const lines = [];
     let line = '';
-    for (const w of text.split(' ')) {
+    // «بـ 30»: a prefix ending in tatweel stays on the same line as the next word.
+    for (const w of text.replace(/ـ /g, 'ـ\u00A0').split(' ')) {
       const next = line ? line + ' ' + w : w;
       if (line && ctx.measureText(next).width > width) {
         lines.push(line);
