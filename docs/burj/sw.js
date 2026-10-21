@@ -5,7 +5,7 @@
 // floors.json: network-first, so a new day's floor (and the server clock) arrive
 // the same day; offline it falls back to the last copy, marked x-burj-cache.
 
-const VERSION = '2101e0797ff7';
+const VERSION = '4f3b62c5b82b';
 const SHELL = `burj-shell-${VERSION}`;
 const DATA = 'burj-data';
 const FONTS = 'burj-fonts';

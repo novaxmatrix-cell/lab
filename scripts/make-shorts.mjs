@@ -44,6 +44,7 @@ const shorts = order.map((p, i) => ({
   a: p.a,
   prev: i ? { q: order[i - 1].q, a: order[i - 1].a } : carry && { q: carry.q, a: carry.a },
   url: src.url,
+  mark: (src.batch ?? 1) > 1, // batch 1 is already scheduled: leave it as rendered
   intro: i || carry ? 2 : 3,
 })).map((s) => ({ ...s, duration: (s.prev ? 2 : 0) + s.intro + 10 + 3 }))
   .filter((s) => s.num >= from && s.num <= (to || from));

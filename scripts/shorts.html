@@ -97,12 +97,27 @@ function tag(level, x, y, size) {
 }
 
 // Channel handle, muted, at the bottom of the area YouTube's overlays leave clear.
-function handle(W) {
+// From batch 2 on, the small NovaX mark (design/marks/novax-small.svg) sits beside it.
+function handle(W, mark) {
   ctx.save();
   ctx.direction = 'ltr';
   ctx.fillStyle = '#5F6688';
   ctx.font = `400 34px ${FONT}`;
-  ctx.fillText('@NovaX-Matrix', W / 2, 1580);
+  const text = '@NovaX-Matrix';
+  if (!mark) {
+    ctx.fillText(text, W / 2, 1580);
+    return ctx.restore();
+  }
+  const size = 28, gap = 14;
+  const tw = ctx.measureText(text).width;
+  const x = W / 2 - (size + gap + tw) / 2;
+  ctx.textAlign = 'left';
+  ctx.fillText(text, x + size + gap, 1580);
+  const y = 1580 - 25, u = size / 100;
+  for (const [cx, cy] of [[0, 0], [37, 0], [74, 0], [0, 37], [37, 37], [74, 37], [0, 74], [37, 74], [74, 74]]) {
+    ctx.globalAlpha = cx === 0 && cy === 74 ? 1 : 0.26;
+    ctx.fillRect(x + cx * u, y + cy * u, 26 * u, 26 * u);
+  }
   ctx.restore();
 }
 
@@ -123,7 +138,7 @@ window.frame = (s, t) => {
   ctx.direction = 'rtl';
   ctx.textAlign = 'center';
   sky(W, H, t, 900);
-  handle(W);
+  handle(W, s.mark);
 
   const P = s.prev ? 2 : 0; // previous answer
   const Q = P + s.intro; // countdown starts

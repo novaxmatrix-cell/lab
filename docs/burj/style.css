@@ -57,8 +57,19 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 .btn-gold{background:linear-gradient(90deg,var(--gold-a),var(--gold-b));color:var(--on-gold);box-shadow:0 10px 28px -14px rgba(245,167,37,.8)}
 .btn-outline{min-height:50px;font-size:1rem;background:transparent;border:2px solid var(--outline);color:var(--t)}
 .btn.busy{pointer-events:none}
-.btn.busy::after{content:"";width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* NovaX marks (design/marks): a 3x3 grid outline with lit squares on the diagonal. */
+.loader,.today{flex:none;fill:currentColor}
+.loader .g,.today .g{fill:none;stroke:currentColor;stroke-width:1px;vector-effect:non-scaling-stroke;opacity:.55}
+.loader .s{opacity:0;animation:climb 1.8s ease-in-out infinite}
+.loader .s1{animation-delay:.6s}.loader .s2{animation-delay:1.2s}
+@keyframes climb{0%{opacity:0}12%{opacity:1}33%{opacity:1}45%{opacity:0}100%{opacity:0}}
+.loader.inline{width:18px;height:18px;margin-inline-end:8px;vertical-align:-3px;color:var(--m)}
+.btn .loader.in-btn{display:none;width:20px;height:20px}
+.btn.busy .loader.in-btn{display:block}
+.today-row{display:flex;align-items:center;justify-content:center;gap:10px}
+.today{width:22px;height:22px;color:var(--m2)}
+.today .t{opacity:0;fill:var(--gold);transition:opacity .4s}
+.today .t.on{opacity:1}
 .btn-install{min-height:48px;font-size:1rem;box-shadow:none}
 .ios-tip{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:var(--fill-2);border:1px solid var(--line);color:#C9CDDD;font-size:.8125rem;line-height:1.5}
 .ios-tip span{flex:1}
@@ -183,5 +194,6 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .loader .s{animation:none!important}.loader .s2{opacity:1}
 }
 @media (min-height:780px){:root{--floor-h:42px;--gap:10px}}

@@ -52,7 +52,10 @@
       <div class="tower" id="tower"></div>
     </div>
     <div class="dock">
-      <p class="status" id="status" aria-live="polite">جاري التحميل…</p>
+      <div class="today-row">
+        <svg class="today" id="today" viewBox="0 0 100 100" role="img" aria-label="طوابق اليوم" hidden><g class="g"><rect x="1.25" y="1.25" width="23.5" height="23.5"/><rect x="38.25" y="1.25" width="23.5" height="23.5"/><rect x="75.25" y="1.25" width="23.5" height="23.5"/><rect x="1.25" y="38.25" width="23.5" height="23.5"/><rect x="38.25" y="38.25" width="23.5" height="23.5"/><rect x="75.25" y="38.25" width="23.5" height="23.5"/><rect x="1.25" y="75.25" width="23.5" height="23.5"/><rect x="38.25" y="75.25" width="23.5" height="23.5"/><rect x="75.25" y="75.25" width="23.5" height="23.5"/></g><rect class="t" x="0" y="74" width="26" height="26"/><rect class="t" x="37" y="37" width="26" height="26"/><rect class="t" x="74" y="0" width="26" height="26"/></svg>
+        <p class="status" id="status" aria-live="polite"><svg class="loader inline" viewBox="0 0 100 100" aria-hidden="true"><g class="g"><rect x="1.25" y="1.25" width="23.5" height="23.5"/><rect x="38.25" y="1.25" width="23.5" height="23.5"/><rect x="75.25" y="1.25" width="23.5" height="23.5"/><rect x="1.25" y="38.25" width="23.5" height="23.5"/><rect x="38.25" y="38.25" width="23.5" height="23.5"/><rect x="75.25" y="38.25" width="23.5" height="23.5"/><rect x="1.25" y="75.25" width="23.5" height="23.5"/><rect x="38.25" y="75.25" width="23.5" height="23.5"/><rect x="75.25" y="75.25" width="23.5" height="23.5"/></g><rect class="s s0" x="0" y="74" width="26" height="26"/><rect class="s s1" x="37" y="37" width="26" height="26"/><rect class="s s2" x="74" y="0" width="26" height="26"/></svg>جاري التحميل…</p>
+      </div>
       <button class="btn btn-gold" id="btn-go" type="button" disabled>ابدأ الصعود</button>
       <button class="btn btn-gold btn-install" id="btn-install" type="button" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
@@ -89,7 +92,7 @@
       <p class="solved-note" id="solved-note" hidden></p>
     </div>
     <div class="dock">
-      <button class="btn btn-gold" id="btn-up" type="submit" form="form">اصعد</button>
+      <button class="btn btn-gold" id="btn-up" type="submit" form="form">اصعد<svg class="loader in-btn" viewBox="0 0 100 100" aria-hidden="true"><g class="g"><rect x="1.25" y="1.25" width="23.5" height="23.5"/><rect x="38.25" y="1.25" width="23.5" height="23.5"/><rect x="75.25" y="1.25" width="23.5" height="23.5"/><rect x="1.25" y="38.25" width="23.5" height="23.5"/><rect x="38.25" y="38.25" width="23.5" height="23.5"/><rect x="75.25" y="38.25" width="23.5" height="23.5"/><rect x="1.25" y="75.25" width="23.5" height="23.5"/><rect x="38.25" y="75.25" width="23.5" height="23.5"/><rect x="75.25" y="75.25" width="23.5" height="23.5"/></g><rect class="s s0" x="0" y="74" width="26" height="26"/><rect class="s s1" x="37" y="37" width="26" height="26"/><rect class="s s2" x="74" y="0" width="26" height="26"/></svg></button>
       <button class="btn btn-outline" id="btn-wa3" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-13.4 7.9L3 21l1.2-4.4A9 9 0 1 1 21 12z"/><path d="M9 8.5c0 3.6 2.9 6.5 6.5 6.5"/></svg>تحدَّ صديقك على واتساب</button>
     </div>
   </section>

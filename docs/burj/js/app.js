@@ -2,7 +2,7 @@
 import { normalize } from './normalize.js';
 import { openGate, openFloor, b64 } from './chain.js';
 import { CONFIG } from './config.js';
-import { openCount, nextText as nextLine, openLabel, LEVEL_NAMES } from './schedule.js';
+import { openCount, nextText as nextLine, openLabel, hebronDate, LEVELS, LEVEL_NAMES } from './schedule.js';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -219,6 +219,7 @@ function update(animate = true, s = solved()) {
   ring.classList.toggle('done', top);
   if (!animate) requestAnimationFrame(() => (ring.style.transition = ''));
 
+  todayMark(s);
   const status = $('status');
   const go = $('btn-go');
   if (top) {
@@ -233,6 +234,23 @@ function update(animate = true, s = solved()) {
     board?.rankLine().then((r) => r && solved() === s && (status.innerHTML += ` · ${r}`));
   }
   scrollToCurrent(animate, s);
+}
+
+// Today's three floors as the NovaX mark: easy bottom-left, medium centre, hard
+// top-right, each lit once solved.
+function todayMark(s) {
+  const day = hebronDate(now());
+  const today = data.floors.map((f, i) => (f.opens === day ? i : -1)).filter((i) => i >= 0);
+  const svg = $('today');
+  svg.toggleAttribute('hidden', !today.length); // SVG elements have no .hidden property
+  if (!today.length) return;
+  const sq = svg.querySelectorAll('.t');
+  sq.forEach((r) => r.classList.remove('on'));
+  today.forEach((i, k) => {
+    const at = LEVELS.indexOf(data.floors[i].level);
+    sq[at >= 0 ? at : k]?.classList.toggle('on', i < s);
+  });
+  svg.setAttribute('aria-label', `طوابق اليوم: ${today.filter((i) => i < s).length} من ${today.length}`);
 }
 
 function scrollToCurrent(smooth, s = solved()) {
