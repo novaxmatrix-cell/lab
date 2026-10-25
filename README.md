@@ -5,7 +5,8 @@ Static site for **lab.novaxmatrix.com**, served by GitHub Pages from `docs/`.
 - `/` NovaX Lab landing page (`docs/index.html`)
 - `/burj/` **البرج · Burj**, a daily Arabic puzzle tower (`docs/burj/`)
 
-Plain HTML, CSS and vanilla JS. No framework, no tracking, no CDN except Google Fonts.
+Plain HTML, CSS and vanilla JS. No framework, no cookies, no analytics, no CDN except
+Google Fonts. One anonymous player counter, off by default (see below).
 
 ## Burj: how the floors are protected
 
@@ -62,6 +63,35 @@ The game installs as an app (PWA): `docs/burj/manifest.webmanifest` and
 version `npm run build` stamps from the shell's contents, so every deploy that
 changes the shell is picked up; `floors.json` is always fetched from the network
 first.
+
+## Player counter
+
+Off by default (`counter` in `docs/burj/js/config.js`). When on, the tower and the
+summit show «صعد البرج X لاعباً غيرك، منهم Y اليوم»: X is every device that ever
+solved a floor, Y those that solved one this game day (06:00 to 06:00 Hebron time).
+Both leave out the viewer's own device. The line is hidden while X is under 5, and
+the «اليوم» part while Y is under 5. No starting numbers: both begin at zero.
+
+- A device sends one request on its first correct answer of each game day: a
+  random token made fresh that day, and the floor and answer it just solved. The
+  very first request also adds it to X. It remembers this locally
+  (`counted`, `climb` in `burj:v1`) and does not send again that day.
+- The server keeps only the two totals: X, and Y per day. The day's tokens stop a
+  retried request being counted twice and are deleted at the next 06:00. No
+  cookies, no account, no device ID.
+- Limits against inflating the count: the answer must be right (released floors
+  only); per network, 60 attempts per 10 minutes and 500 devices a day; 20,000
+  devices a day in all. The network key is SHA-256 of a random salt made for the
+  day and the IP, computed in the function; the IP is not stored, and the salt and
+  keys are deleted at the next 06:00. Supabase's own platform logs may still
+  record request metadata for their retention period.
+- Honest limits: X counts devices and browsers, not people. Clearing browser data,
+  a private window or a new phone counts the same person again. Players who
+  solved floors before the counter went live are counted on their next correct
+  answer. Someone who knows an answer can still add up to the per-network limit
+  each day.
+
+Going live is in `supabase/README.md`.
 
 ## Leaderboard (phase 2)
 

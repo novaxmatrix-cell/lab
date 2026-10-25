@@ -81,6 +81,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width
 .dock{padding:12px 20px calc(14px + env(safe-area-inset-bottom));display:grid;gap:10px}
 .status{text-align:center;color:#C9CDDD;font-size:.9375rem;min-height:1.6em}
 .status b{color:var(--gold)}
+.climbers{text-align:center;color:var(--m);font-size:.875rem;margin-top:-6px}
+.climbers-note{color:var(--m2);font-size:.75rem}
 
 /* 1. Tower */
 #v-tower{overflow:hidden}

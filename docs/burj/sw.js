@@ -5,14 +5,14 @@
 // floors.json: network-first, so a new day's floor (and the server clock) arrive
 // the same day; offline it falls back to the last copy, marked x-burj-cache.
 
-const VERSION = '4f3b62c5b82b';
+const VERSION = '44bc39616459';
 const SHELL = `burj-shell-${VERSION}`;
 const DATA = 'burj-data';
 const FONTS = 'burj-fonts';
 const ASSETS = [
   './', 'style.css', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png',
   'js/app.js', 'js/normalize.js', 'js/chain.js', 'js/config.js', 'js/schedule.js',
-  'js/share.js', 'js/board.js', 'js/towns.js', 'js/badwords.js',
+  'js/share.js', 'js/board.js', 'js/towns.js', 'js/badwords.js', 'js/arabic.js', 'js/climbers.js',
 ];
 
 self.addEventListener('install', (e) => {

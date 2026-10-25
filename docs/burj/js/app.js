@@ -2,7 +2,9 @@
 import { normalize } from './normalize.js';
 import { openGate, openFloor, b64 } from './chain.js';
 import { CONFIG } from './config.js';
-import { openCount, nextText as nextLine, openLabel, hebronDate, LEVELS, LEVEL_NAMES } from './schedule.js';
+import { openCount, nextText as nextLine, openLabel, hebronDate, gameDay, LEVELS, LEVEL_NAMES } from './schedule.js';
+import { countLabel, FLOORS, MINUTES } from './arabic.js';
+import { createCounter } from './climbers.js';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -49,18 +51,18 @@ const params = new URLSearchParams(location.search);
 const boardMode = ['off', 'mock', 'live'].includes(params.get('lb')) ? params.get('lb') : CONFIG.leaderboard.mode;
 
 // ---- Arabic counting
-function floorsLabel(n) {
-  if (n === 1) return 'طابق واحد';
-  if (n === 2) return 'طابقان';
-  if (n >= 3 && n <= 10) return `${n} طوابق`;
-  return `${n} طابقاً`;
-}
+const floorsLabel = (n) => countLabel(n, FLOORS);
+const minutesLabel = (n) => countLabel(n, MINUTES);
 
-function minutesLabel(n) {
-  if (n === 1) return 'دقيقة';
-  if (n === 2) return 'دقيقتين';
-  if (n >= 3 && n <= 10) return `${n} دقائق`;
-  return `${n} دقيقة`;
+// ---- Player count «صعد البرج X لاعباً غيرك» (null when off)
+const counter = createCounter({ config: CONFIG.counter, getState: () => state, save, day: () => gameDay(now()) });
+function showClimbers() {
+  const text = counter?.text() ?? '';
+  for (const id of ['climbers', 'climbers2']) {
+    $(id).textContent = text;
+    $(id).hidden = !text;
+  }
+  $('climbers-note').hidden = !text;
 }
 
 // ---- Startup
@@ -99,6 +101,11 @@ async function init() {
     showView('v-summit');
     renderSummit();
   }
+  if (counter) {
+    await counter.retry();
+    await counter.load();
+    showClimbers();
+  }
 }
 
 // Called when the countdown reaches zero and when the app comes back to the
@@ -124,6 +131,7 @@ async function refresh() {
   if (view === 'v-summit' && !atSummit()) showView('v-tower');
   if (view !== 'v-floor') update(false);
   if (view === 'v-summit') renderSummit();
+  if (counter) counter.load().then(showClimbers);
 }
 
 // Live countdown on the summit screen and the tower status line. When a floor
@@ -368,6 +376,7 @@ $('form').addEventListener('submit', async (e) => {
   $('progress-bar').style.width = `${(solved() / openTotal()) * 100}%`;
   input.blur();
   board?.submit(state);
+  counter?.solved(n, state.answers[n - 1]).then(showClimbers);
   await sleep(600);
   await climb();
 });

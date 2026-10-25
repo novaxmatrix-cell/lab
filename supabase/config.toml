@@ -3,3 +3,6 @@
 # The function does its own validation and works with both legacy anon JWTs
 # and the newer publishable keys, which are not JWTs.
 verify_jwt = false
+
+[functions.climb]
+verify_jwt = false

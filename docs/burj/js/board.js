@@ -4,6 +4,7 @@
 import { normalize } from './normalize.js';
 import { TOWNS } from './towns.js';
 import { nicknameError, NICK_MAX } from './badwords.js';
+import { countLabel, PLAYERS } from './arabic.js';
 
 const $ = (id) => document.getElementById(id);
 const rel = new Intl.RelativeTimeFormat('ar-u-nu-latn', { numeric: 'auto' });
@@ -43,12 +44,7 @@ const MOCK_TOWNS = [
   ['طولكرم', 154, 6.9], ['غزة', 340, 6.7], ['قلقيلية', 96, 6.4], ['الناصرة', 120, 6.2], ['أريحا', 41, 5.8],
 ].map(([town, players, avg_floor]) => ({ town, players, avg_floor }));
 
-function playersLabel(n) {
-  if (n === 1) return 'لاعب واحد';
-  if (n === 2) return 'لاعبان';
-  if (n >= 3 && n <= 10) return `${n} لاعبين`;
-  return `${n} لاعباً`;
-}
+const playersLabel = (n) => countLabel(n, PLAYERS);
 
 const byRank = (a, b) => b.highest_floor - a.highest_floor || new Date(a.reached_at) - new Date(b.reached_at);
 const byTown = (a, b) => b.avg_floor - a.avg_floor || b.players - a.players;

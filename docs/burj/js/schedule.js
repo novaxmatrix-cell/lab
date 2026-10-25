@@ -35,6 +35,13 @@ export function hebronDate(t) {
   return new Date(wallAsUtc(t)).toISOString().slice(0, 10);
 }
 
+// Game day at instant t: the date whose 06:00 Hebron has passed (05:59 is still
+// yesterday). Same rule as burj_day() in supabase/counter.sql.
+export function gameDay(t) {
+  const d = hebronDate(t);
+  return t >= opensAtUtc(d) ? d : hebronDate(opensAtUtc(d) - 12 * 3600e3);
+}
+
 // Floors open at `now`: floors are in date order, so count until the first closed one.
 export function openCount(data, now) {
   let n = 0;

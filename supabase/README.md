@@ -1,4 +1,4 @@
-# Burj leaderboard on Supabase
+# Burj on Supabase: leaderboard and player counter
 
 Prepared, not deployed.
 
@@ -30,3 +30,19 @@ fails if they drift.
 
 Limits: a device id is just a random UUID in localStorage, so a determined
 person can create new "devices"; the IP limit and answer checks bound the damage.
+
+## Player counter
+
+Prepared, not deployed. Needs the project and `seed.private.sql` from above
+(the answer check reads `floor_answers`).
+
+1. SQL editor: run `counter.sql`. Optionally enable pg_cron and run the
+   `cron.schedule` line at the end of it, so yesterday's tokens, salt and network
+   keys are deleted soon after 06:00 even on a quiet morning.
+2. Deploy: `supabase functions deploy climb --no-verify-jwt` (it needs no secrets;
+   it makes a fresh random salt each day in `climb_salts`).
+3. In `docs/burj/js/config.js` set `counter.mode: 'live'`, `supabaseUrl` and `anonKey`.
+
+The public can read only the `climb_counts` view (two numbers and the day). The
+anon key cannot read the tables or call the functions; only the climb function,
+with the injected service-role key, writes. Limits are in `burj_climb()`.

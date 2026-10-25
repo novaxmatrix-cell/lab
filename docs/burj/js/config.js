@@ -10,4 +10,11 @@ export const CONFIG = {
     supabaseUrl: '',
     anonKey: '',
   },
+  counter: {
+    // 'off'  : no player count line
+    // 'live' : «صعد البرج X لاعباً غيرك» from Supabase (supabase/counter.sql)
+    mode: 'off',
+    supabaseUrl: '',
+    anonKey: '',
+  },
 };
