@@ -43,12 +43,13 @@ test('game day turns at 06:00 Hebron, across the DST change', () => {
 
 // A fake server with the same rules as burj_climb (tokens per day, total once).
 function fakeServer() {
-  const s = { players: 0, days: {}, tokens: new Set(), posts: 0, fail: 0, reply: null };
+  const s = { players: 0, days: {}, tokens: new Set(), posts: 0, bodies: [], fail: 0, reply: null };
   s.fetch = async (url, opts = {}) => {
     if (url.endsWith('/climb_counts?select=players,today,day')) {
       return { ok: true, json: async () => [{ players: s.players, today: s.days[s.day] ?? 0, day: s.day }] };
     }
     s.posts++;
+    s.bodies.push(JSON.parse(opts.body));
     if (s.fail > 0) {
       s.fail--;
       throw new TypeError('network');
@@ -59,7 +60,7 @@ function fakeServer() {
       if (s.tokens.has(s.day + b.token)) result = 'already';
       else {
         s.tokens.add(s.day + b.token);
-        s.days[s.day] = (s.days[s.day] ?? 0) + 1;
+        if (b.today !== false) s.days[s.day] = (s.days[s.day] ?? 0) + 1;
         if (b.first) s.players++;
       }
     }
@@ -127,7 +128,7 @@ test('a lost reply is retried with the same token and not counted twice', async 
   assert.equal(state.climb.sent, false);
   assert.equal(state.counted, undefined);
   state.answers.push('a');
-  await counter.retry();
+  await counter.start();
   assert.equal(server.players, 1);
   assert.equal(server.days['2026-10-27'], 1);
   assert.equal(state.counted, true);
@@ -153,14 +154,16 @@ test('offline, rate-limited or capped: not marked, tried again later', async () 
   assert.equal(state.climb.sent, true);
 });
 
-test('no retry for a pending answer from an earlier day', async () => {
+test('a pending answer from an earlier day does not count for today, only all-time', async () => {
   const { server, state, counter } = setup();
   server.fail = 1;
   state.answers.push('a');
   await counter.solved(1, 'a');
   server.day = '2026-10-28';
-  await counter.retry();
-  assert.equal(server.posts, 1);
+  await counter.start();
+  assert.equal(server.posts, 2);
+  assert.equal(server.bodies[1].today, false);
+  assert.deepEqual([server.players, server.days['2026-10-28']], [1, undefined]);
 });
 
 test('shows other players once there are 5', async () => {
@@ -175,4 +178,56 @@ test('shows other players once there are 5', async () => {
   await counter.load();
   assert.equal(counter.text(), 'صعد البرج 6 لاعبين غيرك، منهم 5 اليوم');
   assert.equal(state.counted, true);
+});
+
+test('returning player from before the counter: all-time +1 on load, not «اليوم»', async () => {
+  const { server, state, counter } = setup();
+  state.answers.push('a', 'b', 'c'); // solved 3 floors before the counter went live
+  await counter.start();
+  assert.deepEqual(server.bodies[0], { token: server.bodies[0].token, first: true, today: false, floor: 3, answer: 'c' });
+  assert.equal(server.players, 1);
+  assert.equal(server.days['2026-10-27'], undefined);
+  assert.equal(state.counted, true);
+  assert.equal(state.backfill, undefined);
+  assert.equal(state.climb, undefined);
+  await counter.start(); // next visit: nothing
+  assert.equal(server.posts, 1);
+  // a solve today then counts for «اليوم» only
+  state.answers.push('d');
+  await counter.solved(4, 'd');
+  assert.deepEqual([server.players, server.days['2026-10-27']], [1, 1]);
+  assert.equal(server.bodies[1].first, false);
+});
+
+test('no progress or already counted: nothing sent on load', async () => {
+  const { server, state, counter } = setup();
+  await counter.start();
+  state.answers.push('a');
+  state.counted = true;
+  await counter.start();
+  assert.equal(server.posts, 0);
+});
+
+test('load backfill offline: same token next visit, counted once', async () => {
+  const { server, state, counter } = setup();
+  state.answers.push('a');
+  server.lose = true; // counted on the server, reply lost
+  await counter.start();
+  assert.equal(state.counted, undefined);
+  const token = state.backfill;
+  await counter.start();
+  assert.equal(server.bodies[1].token, token);
+  assert.equal(server.players, 1);
+  assert.equal(state.counted, true);
+});
+
+test('a solve while the load backfill is in flight waits for it: never two «first»', async () => {
+  const { server, state, counter } = setup();
+  state.answers.push('a');
+  const a = counter.start();
+  state.answers.push('b');
+  const b = counter.solved(2, 'b');
+  await Promise.all([a, b]);
+  assert.deepEqual(server.bodies.map((x) => [x.first, x.today]), [[true, false], [false, undefined]]);
+  assert.deepEqual([server.players, server.days['2026-10-27']], [1, 1]);
 });

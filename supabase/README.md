@@ -36,7 +36,9 @@ person can create new "devices"; the IP limit and answer checks bound the damage
 Prepared, not deployed. Needs the project and `seed.private.sql` from above
 (the answer check reads `floor_answers`).
 
-1. SQL editor: run `counter.sql`. Optionally enable pg_cron and run the
+1. SQL editor: run `counter.sql`. It is safe to run again after an update: it
+   keeps the counts (the editor may warn about its `drop function` line, which
+   only replaces the old version of `burj_climb`). Optionally enable pg_cron and run the
    `cron.schedule` line at the end of it, so yesterday's tokens, salt and network
    keys are deleted soon after 06:00 even on a quiet morning.
 2. Deploy: `supabase functions deploy climb --no-verify-jwt` (it needs no secrets;

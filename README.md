@@ -76,6 +76,10 @@ the «اليوم» part while Y is under 5. No starting numbers: both begin at z
   random token made fresh that day, and the floor and answer it just solved. The
   very first request also adds it to X. It remembers this locally
   (`counted`, `climb` in `burj:v1`) and does not send again that day.
+- A device that solved floors before the counter went live is added to X as soon
+  as it comes back: on page load it proves its last solved floor with the answer
+  it already keeps (`answers` in `burj:v1`), checked by the server like any other.
+  This adds to X only, not to Y; Y needs a floor solved that day.
 - The server keeps only the two totals: X, and Y per day. The day's tokens stop a
   retried request being counted twice and are deleted at the next 06:00. No
   cookies, no account, no device ID.
@@ -86,10 +90,10 @@ the «اليوم» part while Y is under 5. No starting numbers: both begin at z
   keys are deleted at the next 06:00. Supabase's own platform logs may still
   record request metadata for their retention period.
 - Honest limits: X counts devices and browsers, not people. Clearing browser data,
-  a private window or a new phone counts the same person again. Players who
-  solved floors before the counter went live are counted on their next correct
-  answer. Someone who knows an answer can still add up to the per-network limit
-  each day.
+  a private window or a new phone counts the same person again. A device that
+  cleared its progress before the counter went live is only counted once it
+  solves a floor again. Someone who knows an answer can still add up to the
+  per-network limit each day.
 
 Going live is in `supabase/README.md`.
 

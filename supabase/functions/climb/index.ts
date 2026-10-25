@@ -1,9 +1,11 @@
 // climb: the only way to add to the Burj player counter (supabase/counter.sql).
 //
-// POST { token, first, floor, answer }
+// POST { token, first, floor, answer, today? }
 //   token  random UUID the device makes fresh each game day (not the device id)
 //   first  true until this device has been counted once, ever
-//   floor  a floor the player just solved, answer its (normalized) answer
+//   floor  a floor the player solved, answer its (normalized) answer
+//   today  false for a returning player who solved floors before the counter went
+//          live: adds to the all-time total only (needs first: true). Default true.
 //
 // The answer is checked against floor_answers (released floors only). The IP is
 // turned into a network key, SHA-256(today's random salt + IP), here in memory;
@@ -48,14 +50,16 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return reply(405, { error: 'POST only' });
   if (origin && !ALLOWED_ORIGINS.includes(origin)) return reply(403, { error: 'origin not allowed' });
 
-  let body: { token?: unknown; first?: unknown; floor?: unknown; answer?: unknown };
+  let body: { token?: unknown; first?: unknown; floor?: unknown; answer?: unknown; today?: unknown };
   try {
     body = await req.json();
   } catch {
     return reply(400, { error: 'bad request' });
   }
   const { token, first, floor, answer } = body;
+  const today = body.today ?? true;
   if (typeof token !== 'string' || !UUID.test(token) || typeof first !== 'boolean' ||
+      typeof today !== 'boolean' || (!today && !first) ||
       !Number.isInteger(floor) || (floor as number) < 1 || (floor as number) > 100_000 ||
       typeof answer !== 'string' || answer.length > MAX_ANSWER_LEN) {
     return reply(400, { error: 'bad request' });
@@ -77,7 +81,7 @@ Deno.serve(async (req) => {
   const ok = !!row && row.answers.includes(normalize(answer));
 
   // Every attempt goes through burj_climb so wrong answers count towards the rate limit.
-  const { data: res, error: cErr } = await db.rpc('burj_climb', { p_net: net, p_token: token, p_first: first, p_ok: ok });
+  const { data: res, error: cErr } = await db.rpc('burj_climb', { p_net: net, p_token: token, p_first: first, p_ok: ok, p_today: today });
   if (cErr || !res) return reply(500, { error: 'server error' });
   const status = res.result === 'rate' ? 429 : res.result === 'wrong' ? 400 : 200;
   return reply(status, res);

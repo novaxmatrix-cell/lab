@@ -102,7 +102,7 @@ async function init() {
     renderSummit();
   }
   if (counter) {
-    await counter.retry();
+    await counter.start();
     await counter.load();
     showClimbers();
   }

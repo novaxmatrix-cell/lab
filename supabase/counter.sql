@@ -3,7 +3,9 @@
 --
 -- What is kept:
 --   * climb_total : one number, every device that ever solved a floor. No IDs.
---   * climb_days  : one number per game day (06:00 to 06:00 Hebron time).
+--   * climb_days  : per game day (06:00 to 06:00 Hebron time): players who solved
+--                   a floor that day, and backfilled (returning players added to
+--                   climb_total only, see burj_climb).
 -- What lives only until the next 06:00 Hebron, then is deleted:
 --   * climb_tokens: random tokens a device makes fresh each day, so a retried
 --                   request is not counted twice. Not linked to anything else.
@@ -32,6 +34,7 @@ create table if not exists public.climb_days (
   day     date primary key,
   players int not null default 0 check (players >= 0)
 );
+alter table public.climb_days add column if not exists backfilled int not null default 0 check (backfilled >= 0);
 
 create table if not exists public.climb_tokens (
   day   date not null,
@@ -86,10 +89,13 @@ end $$;
 
 -- One attempt from the climb function. p_ok: the answer was right.
 -- p_first: the device has never been counted, so it also adds to climb_total.
+-- p_today false: a returning player who solved floors before the counter went
+-- live, proving one of them on page load: climb_total only, not today's number.
 -- Limits (every attempt counts towards the rate, right or wrong):
 --   60 attempts per network per 10 minutes, 500 devices per network per day
 --   (mobile carriers put many players behind one IP), 20000 devices per day overall.
-create or replace function public.burj_climb(p_net text, p_token uuid, p_first boolean, p_ok boolean)
+drop function if exists public.burj_climb(text, uuid, boolean, boolean); -- before p_today
+create or replace function public.burj_climb(p_net text, p_token uuid, p_first boolean, p_ok boolean, p_today boolean default true)
 returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
@@ -115,13 +121,19 @@ begin
     result := 'rate';
   elsif not p_ok then
     result := 'wrong';
+  elsif not p_today and not p_first then
+    result := 'bad';
   elsif exists (select 1 from climb_tokens where day = d and token = p_token) then
     result := 'already';
-  elsif n.counted >= 500 or (select players from climb_days where day = d) >= 20000 then
+  elsif n.counted >= 500 or (select players + backfilled from climb_days where day = d) >= 20000 then
     result := 'capped';
   else
     insert into climb_tokens (day, token) values (d, p_token);
-    update climb_days set players = players + 1 where day = d;
+    if p_today then
+      update climb_days set players = players + 1 where day = d;
+    else
+      update climb_days set backfilled = backfilled + 1 where day = d;
+    end if;
     update climb_nets set counted = counted + 1 where day = d and net = p_net;
     if p_first then
       update climb_total set players = players + 1 where id = 1;
@@ -137,9 +149,9 @@ begin
   );
 end $$;
 
-revoke all on function public.burj_climb_cleanup(), public.burj_salt(), public.burj_climb(text, uuid, boolean, boolean)
+revoke all on function public.burj_climb_cleanup(), public.burj_salt(), public.burj_climb(text, uuid, boolean, boolean, boolean)
   from public, anon, authenticated;
-grant execute on function public.burj_salt(), public.burj_climb(text, uuid, boolean, boolean) to service_role;
+grant execute on function public.burj_salt(), public.burj_climb(text, uuid, boolean, boolean, boolean) to service_role;
 
 -- The only thing the public can read: the two numbers and the current game day.
 create or replace view public.climb_counts
