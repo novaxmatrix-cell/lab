@@ -10,9 +10,9 @@ test('trims and collapses spaces', () => {
 });
 
 test('removes tashkeel and tatweel', () => {
-  assert.equal(normalize('كِتَابٌ'), 'كتاب');
+  assert.equal(normalize('كَوْكَبٌ'), 'كوكب');
   assert.equal(normalize('مَدْرَسَةٌ'), 'مدرسه');
-  assert.equal(normalize('كـــتاب'), 'كتاب');
+  assert.equal(normalize('كـــوكب'), 'كوكب');
   assert.equal(normalize('رحمٰن'), 'رحمن'); // superscript alef
 });
 
@@ -29,7 +29,7 @@ test('optional leading ال', () => {
   assert.equal(normalize('الشمس'), 'شمس');
   assert.equal(normalize('الشمس'), normalize('شمس'));
   assert.equal(normalize('الشجرة'), 'شجره');
-  assert.equal(normalize('  الكتاب '), 'كتاب');
+  assert.equal(normalize('  الكوكب '), 'كوكب');
   assert.equal(normalize('أل'), 'ال'); // too short to strip
   assert.equal(normalize('باب الدار'), 'باب الدار'); // only at the start
 });
