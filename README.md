@@ -66,7 +66,7 @@ first.
 
 ## Player counter
 
-Off by default (`counter` in `docs/burj/js/config.js`). When on, the tower and the
+Switched by `counter` in `docs/burj/js/config.js` (Supabase project novax-lab). When on, the tower and the
 summit show «صعد البرج X لاعباً غيرك، منهم Y اليوم»: X is every device that ever
 solved a floor, Y those that solved one this game day (06:00 to 06:00 Hebron time).
 Both leave out the viewer's own device. The line is hidden while X is under 5, and

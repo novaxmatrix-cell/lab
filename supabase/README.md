@@ -41,7 +41,9 @@ Prepared, not deployed. Needs the project and `seed.private.sql` from above
    only replaces the old version of `burj_climb`). Optionally enable pg_cron and run the
    `cron.schedule` line at the end of it, so yesterday's tokens, salt and network
    keys are deleted soon after 06:00 even on a quiet morning.
-2. Deploy: `supabase functions deploy climb --no-verify-jwt` (it needs no secrets;
+2. Deploy: `supabase functions deploy climb --no-verify-jwt`, or in the dashboard
+   (Edge Functions → Via Editor) paste `climb/index.ts` and `climb/normalize.js`
+   as two files and turn JWT verification off (it needs no secrets;
    it makes a fresh random salt each day in `climb_salts`).
 3. In `docs/burj/js/config.js` set `counter.mode: 'live'`, `supabaseUrl` and `anonKey`.
 

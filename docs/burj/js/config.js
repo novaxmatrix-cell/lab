@@ -13,8 +13,8 @@ export const CONFIG = {
   counter: {
     // 'off'  : no player count line
     // 'live' : «صعد البرج X لاعباً غيرك» from Supabase (supabase/counter.sql)
-    mode: 'off',
-    supabaseUrl: '',
-    anonKey: '',
+    mode: 'live',
+    supabaseUrl: 'https://qmkznrecxphorflcgdlu.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFta3pucmVjeHBob3JmbGNnZGx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MTQwMjIsImV4cCI6MjEwODQ5MDAyMn0.8YMegSA4nsVDr6J06m-72OJY1rgXoSF8_3siJNqfoc0',
   },
 };

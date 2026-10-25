@@ -3,6 +3,7 @@
 //   docs/burj/data/floors.json            public, encrypted chain
 //   supabase/seed.private.sql             gitignored, answers for the Edge Function
 //   supabase/functions/_shared/*.js       copies of the shared client modules
+//   supabase/functions/climb/normalize.js  (and one for the climb function)
 
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -71,6 +72,8 @@ await writeFile(SW, sw.replace(/const VERSION = '[^']*';/, `const VERSION = '${v
 for (const f of ['normalize.js', 'badwords.js', 'towns.js']) {
   await copyFile(root + 'docs/burj/js/' + f, root + 'supabase/functions/_shared/' + f);
 }
+// The climb function is deployed from the dashboard editor, which cannot reach _shared.
+await copyFile(root + 'docs/burj/js/normalize.js', root + 'supabase/functions/climb/normalize.js');
 
 const leaks = await findLeaks(floors, src.publicWords);
 if (leaks.length) {

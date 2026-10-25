@@ -16,7 +16,7 @@
 // Never copy the service-role key into the repo or the client.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { normalize } from '../_shared/normalize.js';
+import { normalize } from './normalize.js'; // copy made by npm run build, deployed next to index.ts
 
 const MAX_ANSWER_LEN = 60;
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://lab.novaxmatrix.com').split(',').map((s) => s.trim());

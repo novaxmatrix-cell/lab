@@ -66,4 +66,7 @@ test('Edge Function copy is identical to the client module', async () => {
     const b = await readFile(new URL(`../supabase/functions/_shared/${f}`, import.meta.url), 'utf8');
     assert.equal(b, a, `${f} out of sync: run npm run build`);
   }
+  const a = await readFile(new URL('../docs/burj/js/normalize.js', import.meta.url), 'utf8');
+  const b = await readFile(new URL('../supabase/functions/climb/normalize.js', import.meta.url), 'utf8');
+  assert.equal(b, a, 'climb/normalize.js out of sync: run npm run build');
 });
